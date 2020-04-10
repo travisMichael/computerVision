@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+from scipy import ndimage
 
 r_m = np.array([
     [0, -1],
@@ -7,15 +8,15 @@ r_m = np.array([
 ])
 
 
-def patch_iteration(image, Phi, confidence_matrix, template_size):
+def patch_iteration(image, Phi, original_Phi, border, confidence_matrix, template_size):
 
     Omega = np.zeros_like(Phi)
     Omega[np.where(Phi == 0)] = 255
 
-    # border = return_image_border(Phi)
-    # border_points = np.where(border == 255)
+    # border = initialize_border(Phi)
+    border_points = np.where(border == 255)
     d_omega = np.gradient(Omega)
-    border_points = np.where(d_omega[0] + d_omega[1] > 0)
+    # border_points = np.where(d_omega[0] + d_omega[1] > 0)
 
     d_Phi = calculate_3d_gradient(image)
 
@@ -23,13 +24,37 @@ def patch_iteration(image, Phi, confidence_matrix, template_size):
 
     point_row, point_column = get_highest_patch_priority(border_points, n_p, d_I_perpindicular, confidence_matrix, template_size)
 
-    patch_row, patch_column = find_most_similar_patch(point_row, point_column, image, template_size, Phi)
+    patch_row, patch_column = find_most_similar_patch(point_row, point_column, image, template_size, Phi, original_Phi)
+    border = update_border(point_row, point_column, template_size, border, Phi)
 
     confidence_matrix, image, Phi = fill_patch(patch_row, patch_column, point_row, point_column, template_size, confidence_matrix, image, Phi)
-    return confidence_matrix, image, Phi
+    border = update_border_with_new_Phi(point_row, point_column, template_size, border, Phi)
+    return confidence_matrix, image, Phi, border
 
 
-def find_most_similar_patch(point_row, point_col, image, template_size, Phi):
+def update_border(row, col, template_size, border, Phi):
+    original = np.copy(border)
+    half = template_size // 2
+    # upper and lower
+    for i in range(col - half - 1, col + half + 2):
+        border[row + half + 1, i] = 255 if Phi[row + half + 1, i] == 0 else 0
+        border[row - half - 1, i] = 255 if Phi[row - half - 1, i] == 0 else 0
+    # left and right
+    for i in range(row - half - 1, row + half + 2):
+        border[i, col + half + 1] = 255 if Phi[i, col + half + 1] == 0 else 0
+        border[i, col - half - 1] = 255 if Phi[i, col - half - 1] == 0 else 0
+
+    return border
+
+
+def update_border_with_new_Phi(row, col, template_size, border, Phi):
+    original = np.copy(border)
+    half = template_size // 2
+    border[np.where(Phi == 255)] = 0
+    return border
+
+
+def find_most_similar_patch(point_row, point_col, image, template_size, Phi, original_Phi):
     h = image.shape[0]
     w = image.shape[1]
     half = template_size // 2
@@ -41,7 +66,7 @@ def find_most_similar_patch(point_row, point_col, image, template_size, Phi):
 
     for i in range(half, h - half):
         for j in range(half, w - half):
-            if does_patch_contain_pixels_from_omega(Phi[i-half:i+half+1, j-half:j+half+1]):
+            if does_patch_contain_pixels_from_omega(original_Phi[i-half:i+half+1, j-half:j+half+1]):
                 continue
             candidate_patch = image[i-half:i+half+1, j-half:j+half+1, :]
             patch_l2_error = calculate_patch_l2_error(patch, candidate_patch, Phi_patch)
@@ -219,7 +244,7 @@ def set_image(marker, original, Phi):
     return original
 
 
-def return_image_border(Phi):
+def initialize_border(Phi, remove_isolated_pixels=False):
     h = Phi.shape[0]
     w = Phi.shape[1]
 
@@ -244,6 +269,35 @@ def return_image_border(Phi):
             elif hit_edge and Phi[j, i] != 0:
                 border[j - 1, i] = 255
                 hit_edge = False
+
+    # sx = ndimage.sobel(Phi, axis=0)
+    # sy = ndimage.sobel(Phi, axis=1)
+    #
+    # border_2 = np.zeros_like(Phi)
+    # border_2[np.where(sx != 0)] = 1
+    # border_2[np.where(sy != 0)] = 1
+    #
+    # border_2 = ndimage.binary_erosion(border_2)
+    # print()
+    # kernel = np.array([
+    #     [1, 1, 1],
+    #     [1, 0, 1],
+    #     [1, 1, 1]
+    # ])
+    # if remove_isolated_pixels:
+    #     while True:
+    #         # pixels_removed = 0
+    #         condition = np.zeros_like(border, dtype=bool)
+    #         output = cv2.filter2D(border, -1, kernel)
+    #         condition[np.where(output == 2)] = True
+    #         condition[np.where(output == 0)] = True
+    #         indices = np.where(condition == False)
+    #         if len(indices[0]) < 1:
+    #             break
+    #         border[indices] = 0
+    #
+    #     pass
+
     return border
 
 
