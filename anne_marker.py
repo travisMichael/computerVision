@@ -5,8 +5,8 @@ import numpy as np
 def get_image():
     marker = "anne/in/anne_marker"
     image = cv2.imread(marker + ".jpg")
-    image = cv2.resize(image, (600, 800))
-    image = image[0:780, :, :]
+    image = cv2.resize(image, (900, 1200))
+    image = image[490:1180, :, :]
 
     h, w, _ = image.shape
     im_copy = np.copy(image)
@@ -40,6 +40,6 @@ def get_image():
 get_image()
 
 image = cv2.imread("anne/in/Anne.jpg")
-image = cv2.resize(image, (600, 800))
-image = image[0:780, :, :]
+image = cv2.resize(image, (900, 1200))
+image = image[490:1180, :, :]
 cv2.imwrite("anne/in/anne_r.jpg", image)

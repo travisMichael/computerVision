@@ -3,9 +3,10 @@ import numpy as np
 
 
 def get_image():
-    marker = "bridge/in/Sarah_marker"
+    marker = "island/in/island_marker"
     image = cv2.imread(marker + ".jpg")
-    image = cv2.resize(image, (750, 1000))
+    # image = cv2.resize(image, (600, 800))
+    # image = image[0:780, :, :]
 
     h, w, _ = image.shape
     im_copy = np.copy(image)
@@ -24,6 +25,7 @@ def get_image():
     one[np.where(cond)] = 0
     two[np.where(cond)] = 255
 
+
     np.save(marker, im_copy)
     cv2.imwrite(marker + "2.jpg", im_copy)
 
@@ -35,8 +37,8 @@ def get_image():
     cv2.imwrite("Phi.jpg", Phi)
     return image
 
-get_image()
+# get_image()
 
-# image = cv2.imread("bridge/in/Sarah.jpg")
-# image = cv2.resize(image, (750, 1000))
-# cv2.imwrite("bridge/in/sarah_r.jpg", image)
+image = cv2.imread("island/in/island.jpg")
+image = cv2.resize(image, (450, 600))
+cv2.imwrite("island/in/island_r.jpg", image)
