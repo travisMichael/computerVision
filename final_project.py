@@ -71,12 +71,15 @@ def run_algorithm(image, Phi, border, confidence_matrix, template_size):
         confidence_matrix, image, Phi, border = patch_iteration(image, Phi, original_Phi, border, confidence_matrix, template_size)
         if index % 1 == 0:
             print(index)
-            # confidence_matrix, image, Phi, border = patch_iteration(image, Phi, original_Phi, border, confidence_matrix, template_size)
             # np.save("border", border)
             # np.save("image_states/beach_patch_filled" + str(index), image)
             cv2.imwrite("image_states/beach_patch_filled" + str(index) + ".jpg", image)
             # np.save("confidence_states/c_" + str(index), confidence_matrix)
             # np.save("Phi_states/Phi_" + str(index), Phi)
+        border_points = np.where(border == 255)
+        if len(border_points[0]) < 1:
+            break
+    print("done")
 
 
 if __name__ == "__main__":
