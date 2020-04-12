@@ -3,13 +3,13 @@ from marker import *
 
 
 def remove_object_from_image_shower():
-    original = cv2.imread("bridge/in/shower_r.jpg").astype(float)
+    original = cv2.imread("shower/in/shower_original.jpg").astype(float)
     marker, Phi = get_algorithm_params_for_shower()
     image = set_image(marker, original, Phi)
     confidence_matrix = initialize_confidence_matrix(Phi)
     border = initialize_border(Phi, remove_isolated_pixels=True)
     template_size = 7
-    run_algorithm(image, Phi, border, confidence_matrix, template_size, "bridge/out/sarah.jpg")
+    run_algorithm(image, Phi, border, confidence_matrix, template_size, "shower/out/shower_output.jpg")
 
 
 def remove_object_from_image_anne():
