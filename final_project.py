@@ -27,7 +27,7 @@ channel_red = beach_npy[:, :, 2]
 #
 # image = set_image(marker, image, Phi)
 # cv2.imwrite("i.jpg", image)
-template_size = 9
+template_size = 7
 
 
 def remove_object_from_image_bridge():
@@ -36,31 +36,47 @@ def remove_object_from_image_bridge():
     marker = cv2.imread("bridge/in/bridge_marker.jpg").astype(float)
     image = set_image(marker, original, Phi)
     confidence_matrix = initialize_confidence_matrix(Phi)
+    border = initialize_border(Phi, remove_isolated_pixels=True)
     template_size = 5
 
-    run_algorithm(image, Phi, confidence_matrix, template_size)
+    run_algorithm(image, Phi, border, confidence_matrix, template_size)
 
 
-def remove_object_from_image_two():
-    return None
+def remove_object_from_image_anne():
+    Phi = np.load("anne/in/anne_marker.npy")
+    original = cv2.imread("anne/in/anne_r.jpg").astype(float)
+    marker = cv2.imread("anne/in/anne_marker2.jpg").astype(float)
+    image = set_image(marker, original, Phi)
+    confidence_matrix = initialize_confidence_matrix(Phi)
+    border = initialize_border(Phi, remove_isolated_pixels=True)
+    template_size = 9
+
+    run_algorithm(image, Phi, border, confidence_matrix, template_size)
 
 
 def remove_object_from_image_three():
     return None
 
 
-def run_algorithm(image, Phi, confidence_matrix, template_size):
-    # confidence_matrix = np.load("confidence_states/c_30.npy")
-    Phi = np.load("Phi_states/Phi_228.npy")
-    # image = np.load("image_states/beach_patch_filled30.npy").astype(float)
+def run_algorithm(image, Phi, border, confidence_matrix, template_size):
+    original_Phi = np.copy(Phi)
+    np.save("original_phi", Phi)
+    # confidence_matrix = np.load("confidence_states/c_229.npy")
+    # Phi = np.load("Phi_states/Phi_229.npy")
+    # original_Phi = np.load("Phi_states/Phi_229.npy")
+    # border = np.load("border.npy")
+    # image = np.load("image_states/beach_patch_filled229.npy").astype(float)
     # cv2.circle(image, (patch_column, patch_row), 2, [0, 0, 255], thickness=2)
-    for index in range(0, 230):
-        print(index)
-        confidence_matrix, image, Phi = patch_iteration(image, Phi, confidence_matrix, template_size)
-        np.save("image_states/beach_patch_filled" + str(index), image)
-        cv2.imwrite("image_states/beach_patch_filled" + str(index) + ".jpg", image)
-        np.save("confidence_states/c_" + str(index), confidence_matrix)
-        np.save("Phi_states/Phi_" + str(index), Phi)
+    for index in range(0, 5000):
+        confidence_matrix, image, Phi, border = patch_iteration(image, Phi, original_Phi, border, confidence_matrix, template_size)
+        if index % 1 == 0:
+            print(index)
+            # confidence_matrix, image, Phi, border = patch_iteration(image, Phi, original_Phi, border, confidence_matrix, template_size)
+            # np.save("border", border)
+            # np.save("image_states/beach_patch_filled" + str(index), image)
+            cv2.imwrite("image_states/beach_patch_filled" + str(index) + ".jpg", image)
+            # np.save("confidence_states/c_" + str(index), confidence_matrix)
+            # np.save("Phi_states/Phi_" + str(index), Phi)
 
 
 if __name__ == "__main__":

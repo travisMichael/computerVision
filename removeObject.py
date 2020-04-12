@@ -23,108 +23,136 @@ def patch_iteration(image, Phi, original_Phi, border, confidence_matrix, templat
     n_p, d_I_perpindicular = calculate_unit_vectors(border_points, d_omega, d_Phi)
 
     point_row, point_column = get_highest_patch_priority(border_points, n_p, d_I_perpindicular, confidence_matrix, template_size)
+    template_height, template_width = get_template_size(point_row, point_column, template_size, Phi)
 
-    patch_row, patch_column = find_most_similar_patch(point_row, point_column, image, template_size, Phi, original_Phi)
-    border = update_border(point_row, point_column, template_size, border, Phi)
+    patch = find_most_similar_patch(point_row, point_column, image, template_height, template_width, template_size, Phi, original_Phi)
+    border = update_border(point_row, point_column, template_height, template_width, border, Phi)
 
-    confidence_matrix, image, Phi = fill_patch(patch_row, patch_column, point_row, point_column, template_size, confidence_matrix, image, Phi)
-    border = update_border_with_new_Phi(point_row, point_column, template_size, border, Phi)
+    confidence_matrix, image, Phi = fill_patch(patch, point_row, point_column, template_height, template_width, confidence_matrix, image, Phi)
+    border = update_border_with_new_Phi(border, Phi)
     return confidence_matrix, image, Phi, border
 
 
-def update_border(row, col, template_size, border, Phi):
-    original = np.copy(border)
+def get_template_size(point_row, point_column, template_size, Phi):
+    h, w = Phi.shape
     half = template_size // 2
+    template_height = 0
+    template_width = 0
+    while template_height < half:
+        if point_row - template_height < 0:
+            break
+        if point_row + template_height >= h-1:
+            break
+        template_height += 1
+
+    while template_width < half:
+        if point_column - template_width < 0:
+            break
+        if point_column + template_width >= w-1:
+            break
+        template_width += 1
+
+    return template_height, template_width
+
+
+def update_border(row, col, template_height, template_width, border, Phi):
+    h, w = Phi.shape
     # upper and lower
-    for i in range(col - half - 1, col + half + 2):
-        border[row + half + 1, i] = 255 if Phi[row + half + 1, i] == 0 else 0
-        border[row - half - 1, i] = 255 if Phi[row - half - 1, i] == 0 else 0
+    for i in range(col - template_width - 1, col + template_width + 2):
+        if row + template_height + 1 < h and 0 < i < w:
+            border[row + template_height + 1, i] = 255 if Phi[row + template_height + 1, i] == 0 else 0
+        if row - template_height - 1 > 0 and 0 < i < w:
+            border[row - template_height - 1, i] = 255 if Phi[row - template_height - 1, i] == 0 else 0
     # left and right
-    for i in range(row - half - 1, row + half + 2):
-        border[i, col + half + 1] = 255 if Phi[i, col + half + 1] == 0 else 0
-        border[i, col - half - 1] = 255 if Phi[i, col - half - 1] == 0 else 0
+    for i in range(row - template_height, row + template_height + 2):
+        if row + template_width + 1 < w and 0 < i < h:
+            border[i, col + template_width + 1] = 255 if Phi[i, col + template_width + 1] == 0 else 0
+        if row - template_width - 1 > 0 and 0 < i < h:
+            border[i, col - template_width - 1] = 255 if Phi[i, col - template_width - 1] == 0 else 0
 
     return border
 
 
-def update_border_with_new_Phi(row, col, template_size, border, Phi):
-    original = np.copy(border)
-    half = template_size // 2
+def update_border_with_new_Phi(border, Phi):
+    # original = np.copy(border)
+    # half = template_size // 2
     border[np.where(Phi == 255)] = 0
     return border
 
 
-def find_most_similar_patch(point_row, point_col, image, template_size, Phi, original_Phi):
+def find_most_similar_patch(point_row, point_col, image, template_height, template_width, template_size, Phi, original_Phi):
     h = image.shape[0]
     w = image.shape[1]
-    half = template_size // 2
-    patch = image[point_row-half:point_row+half+1, point_col-half:point_col+half+1, :]
-    Phi_patch = Phi[point_row-half:point_row+half+1, point_col-half:point_col+half+1]
-    lowest_l2_error = np.inf
-    best_row = -1
-    best_col = -1
+    res = np.zeros((h, w))
+    res[:, :] = np.inf
+    in_omega_matrix = np.zeros_like(original_Phi)
+    in_omega_matrix[np.where(original_Phi == 0)] = 1
+    kernel = np.ones((template_size, template_size))
+    output = cv2.filter2D(in_omega_matrix, -1, kernel)
 
-    for i in range(half, h - half):
-        for j in range(half, w - half):
-            if does_patch_contain_pixels_from_omega(original_Phi[i-half:i+half+1, j-half:j+half+1]):
-                continue
-            candidate_patch = image[i-half:i+half+1, j-half:j+half+1, :]
-            patch_l2_error = calculate_patch_l2_error(patch, candidate_patch, Phi_patch)
-            if patch_l2_error < lowest_l2_error:
-                lowest_l2_error = patch_l2_error
-                best_row = i
-                best_col = j
+    patch = image[point_row-template_height:point_row+template_height+1, point_col-template_width:point_col+template_width+1, :]
+    Phi_patch = Phi[point_row-template_height:point_row+template_height+1, point_col-template_width:point_col+template_width+1]
 
-    return best_row, best_col
+    res_0 = cv2.matchTemplate(image[:, :, 0].astype("uint8"), patch[:, :, 0].astype("uint8"), method=cv2.TM_SQDIFF, mask=Phi_patch.astype("uint8"))
+    res_1 = cv2.matchTemplate(image[:, :, 1].astype("uint8"), patch[:, :, 1].astype("uint8"), method=cv2.TM_SQDIFF, mask=Phi_patch.astype("uint8"))
+    res_2 = cv2.matchTemplate(image[:, :, 2].astype("uint8"), patch[:, :, 2].astype("uint8"), method=cv2.TM_SQDIFF, mask=Phi_patch.astype("uint8"))
 
+    res[template_height:h-template_height, template_width:w-template_width] = res_0 + res_1 + res_2
+    res[np.where(output > 0.5)] = np.inf
 
-def does_patch_contain_pixels_from_omega(Phi_patch):
-    pixels_in_omega = np.where(Phi_patch == 0)
-    if len(pixels_in_omega[0]) > 1:
-        return True
-    return False
+    patch_row, patch_col = np.unravel_index(np.argmin(res, axis=None), res.shape)
+
+    return np.copy(image[patch_row-template_height:patch_row+template_height + 1, patch_col-template_width:patch_col+template_width+1, :])
 
 
-def calculate_patch_l2_error(patch, candidate_patch, Phi_patch):
-    h_p = patch.shape[0]
-    w_p = patch.shape[1]
-    h_cp = candidate_patch.shape[0]
-    w_cp = candidate_patch.shape[1]
+# def does_patch_contain_pixels_from_omega(Phi_patch):
+#     pixels_in_omega = np.where(Phi_patch == 0)
+#     if len(pixels_in_omega[0]) > 1:
+#         return True
+#     return False
 
-    if h_p != h_cp or w_p != w_cp:
-        return np.inf
+#
+# def calculate_patch_l2_error(patch, candidate_patch, Phi_patch):
+#     h_p = patch.shape[0]
+#     w_p = patch.shape[1]
+#     h_cp = candidate_patch.shape[0]
+#     w_cp = candidate_patch.shape[1]
+#
+#     if h_p != h_cp or w_p != w_cp:
+#         return np.inf
+#
+#     diff_0 = patch[:, :, 0] - candidate_patch[:, :, 0]
+#     diff_1 = patch[:, :, 1] - candidate_patch[:, :, 1]
+#     diff_2 = patch[:, :, 2] - candidate_patch[:, :, 2]
+#
+#     squared_0 = np.multiply(diff_0, diff_0)
+#     squared_1 = np.multiply(diff_1, diff_1)
+#     squared_2 = np.multiply(diff_2, diff_2)
+#     s = squared_0 + squared_1 + squared_2
+#     s[np.where(Phi_patch == 0)] = 0
+#     return np.sqrt(np.sum(s))
 
-    diff_0 = patch[:, :, 0] - candidate_patch[:, :, 0]
-    diff_1 = patch[:, :, 1] - candidate_patch[:, :, 1]
-    diff_2 = patch[:, :, 2] - candidate_patch[:, :, 2]
 
-    squared_0 = np.multiply(diff_0, diff_0)
-    squared_1 = np.multiply(diff_1, diff_1)
-    squared_2 = np.multiply(diff_2, diff_2)
-    s = squared_0 + squared_1 + squared_2
-    s[np.where(Phi_patch == 0)] = 0
-    return np.sqrt(np.sum(s))
-
-
-def fill_patch(patch_row, patch_column, point_row, point_column, template_size, confidence_matrix, image, Phi):
-    half = template_size // 2
-    Phi_patch = Phi[point_row-half:point_row+half+1, point_column-half:point_column+half+1]
-    update_patch = np.copy(image[patch_row-half:patch_row+half+1, patch_column-half:patch_column+half+1])
-    update_patch[np.where(Phi_patch == 255)] = 0
-    current_patch = image[point_row-half:point_row+half+1, point_column-half:point_column+half+1]
+def fill_patch(patch, point_row, point_column, template_height, template_width, confidence_matrix, image, Phi):
+    Phi_patch = Phi[point_row-template_height:point_row+template_height+1, point_column-template_width:point_column+template_width+1]
+    patch[np.where(Phi_patch == 255)] = 0
+    current_patch = image[point_row-template_height:point_row+template_height+1, point_column-template_width:point_column+template_width+1]
     current_patch[np.where(Phi_patch == 0)] = 0
-    image[point_row-half:point_row+half+1, point_column-half:point_column+half+1] = cv2.add(current_patch, update_patch)
-    Phi[point_row-half:point_row+half+1, point_column-half:point_column+half+1] = 255
-    confidence_matrix = update_confidence_matrix(point_row, point_column, confidence_matrix, template_size)
+    image[point_row-template_height:point_row+template_height+1, point_column-template_width:point_column+template_width+1] = cv2.add(current_patch, patch)
+    Phi[point_row-template_height:point_row+template_height+1, point_column-template_width:point_column+template_width+1] = 255
+    confidence_matrix = update_confidence_matrix(point_row, point_column, confidence_matrix, template_height, template_width)
 
     return confidence_matrix, image, Phi
 
 
 def get_highest_patch_priority(border_points, delta_omega_vectors, isophote_vectors, confidence_matrix, template_size):
     number_of_points = len(border_points[0])
-    best_point_row = 0
-    best_point_column = 0
+    best_point_row = -1
+    best_point_column = -1
     max = 0
+
+    if number_of_points < 1:
+        print("heeeeeeeeeeee")
 
     for i in range(number_of_points):
         delta_omega = delta_omega_vectors[i]
@@ -161,14 +189,13 @@ def initialize_confidence_matrix(Phi):
     return C
 
 
-def update_confidence_matrix(point_row, point_column, confidence_matrix, template_size):
-    half = template_size // 2
-    confidence_patch = confidence_matrix[point_row-half:point_row+half+1, point_column-half:point_column+half+1]
-    c_p = np.sum(confidence_patch) / (template_size * template_size)
+def update_confidence_matrix(point_row, point_column, confidence_matrix, template_height, template_width):
+    confidence_patch = confidence_matrix[point_row-template_height:point_row+template_height+1, point_column-template_width:point_column+template_width+1]
+    c_p = np.sum(confidence_patch) / ((template_height*2+1) * (template_width*2+1))
 
     new_confidence_patch = np.zeros_like(confidence_patch)
     new_confidence_patch[np.where(confidence_patch == 0)] = c_p
-    confidence_matrix[point_row-half:point_row+half+1, point_column-half:point_column+half+1] += new_confidence_patch
+    confidence_matrix[point_row-template_height:point_row+template_height+1, point_column-template_width:point_column+template_width+1] += new_confidence_patch
     return confidence_matrix
 
 
@@ -179,12 +206,6 @@ def calculate_unit_vectors(border_points, d_omega, d_Phi):
     for i in range(number_of_points):
         p_i = border_points[0][i]
         p_j = border_points[1][i]
-        # d_omega_vector = # np.array([d_omega[0][p_i, p_j], d_omega[1][p_i, p_j]])
-        # three_by_three = border[p_i-1:p_i+2, p_j-1:p_j+2]
-        # point_indices = np.where(three_by_three)
-        # vector_1 = np.array([point_indices[0][1] - point_indices[0][0], point_indices[1][1] - point_indices[1][0]])
-        # vector_2 = np.array([point_indices[0][2] - point_indices[0][1], point_indices[1][2] - point_indices[1][1]])
-        # d_omega_vector = vector_1 + vector_2
         d_omega_vector = np.array([d_omega[1][p_i, p_j], d_omega[0][p_i, p_j]])
         d_phi_vector = np.array([d_Phi[1][p_i, p_j], d_Phi[0][p_i, p_j]])
 
