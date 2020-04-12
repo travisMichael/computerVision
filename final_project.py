@@ -7,7 +7,7 @@ def remove_object_from_image_shower():
     marker, Phi = get_algorithm_params_for_shower()
     image = set_image(marker, original, Phi)
     confidence_matrix = initialize_confidence_matrix(Phi)
-    border = initialize_border(Phi, remove_isolated_pixels=True)
+    border = initialize_border(Phi)
     template_size = 7
     run_algorithm(image, Phi, border, confidence_matrix, template_size, "shower/out/shower_output.jpg")
 
@@ -17,7 +17,7 @@ def remove_object_from_image_anne():
     marker, Phi = get_algorithm_params_for_anne()
     image = set_image(marker, original, Phi)
     confidence_matrix = initialize_confidence_matrix(Phi)
-    border = initialize_border(Phi, remove_isolated_pixels=True)
+    border = initialize_border(Phi)
     template_size = 21
 
     run_algorithm(image, Phi, border, confidence_matrix, template_size, "anne/out/anne.jpg")
@@ -28,7 +28,7 @@ def remove_object_from_image_island():
     marker, Phi = get_algorithm_params_for_island()
     image = set_image(marker, original, Phi)
     confidence_matrix = initialize_confidence_matrix(Phi)
-    border = initialize_border(Phi, remove_isolated_pixels=True)
+    border = initialize_border(Phi)
     template_size = 9
 
     run_algorithm(image, Phi, border, confidence_matrix, template_size, "island/out/island.jpg")

@@ -3,7 +3,7 @@ import numpy as np
 
 
 def get_algorithm_params_for_shower():
-    image = cv2.imread("bridge/in/shower_marker.jpg")
+    image = cv2.imread("shower/in/shower_marker.jpg")
 
     h, w, _ = image.shape
     im_copy = np.copy(image)

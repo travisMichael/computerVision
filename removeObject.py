@@ -9,24 +9,25 @@ r_m = np.array([
 
 def patch_iteration(image, Phi, original_Phi, border, confidence_matrix, template_size):
 
-    Omega = np.zeros_like(Phi)
-    Omega[np.where(Phi == 0)] = 255
-
     border_points = np.where(border == 255)
-    d_omega = np.gradient(Omega)
 
-    d_Phi = calculate_3d_gradient(image)
+    # Process 4 in pipeline
+    n_p, d_I_perpindicular = calculate_point_vectors(border_points, Phi, image)
 
-    n_p, d_I_perpindicular = calculate_unit_vectors(border_points, d_omega, d_Phi)
-
+    # Process 5 in pipeline
     point_row, point_column = get_highest_patch_priority(border_points, n_p, d_I_perpindicular, confidence_matrix, template_size)
+    # temporary values used to find the next best patch
     template_height, template_width = get_template_size(point_row, point_column, template_size, Phi)
 
+    # Process 6 in pipeline
     patch = find_most_similar_patch(point_row, point_column, image, template_height, template_width, template_size, Phi, original_Phi)
+    # Intermediate calculation to update border
     border = update_border(point_row, point_column, template_height, template_width, border, Phi)
 
+    # Process 7 in pipeline.
     confidence_matrix, image, Phi = fill_patch(patch, point_row, point_column, template_height, template_width, confidence_matrix, image, Phi)
-    border = update_border_with_new_Phi(border, Phi)
+    # Process 8 in pipeline. These updated variables will be passed into the next pipeline iteration
+    border[np.where(Phi == 255)] = 0
     return confidence_matrix, image, Phi, border
 
 
@@ -67,11 +68,6 @@ def update_border(row, col, template_height, template_width, border, Phi):
         if row - template_width - 1 > 0 and 0 < i < h:
             border[i, col - template_width - 1] = 255 if Phi[i, col - template_width - 1] == 0 else 0
 
-    return border
-
-
-def update_border_with_new_Phi(border, Phi):
-    border[np.where(Phi == 255)] = 0
     return border
 
 
@@ -163,7 +159,13 @@ def update_confidence_matrix(point_row, point_column, confidence_matrix, templat
     return confidence_matrix
 
 
-def calculate_unit_vectors(border_points, d_omega, d_Phi):
+def calculate_point_vectors(border_points, Phi, image):
+    Omega = np.zeros_like(Phi)
+    Omega[np.where(Phi == 0)] = 255
+
+    d_omega = np.gradient(Omega)
+    d_Phi = calculate_3d_gradient(image)
+
     d_omega_orthogonal_unit_vector_list = []
     d_phi_orthogonal_unit_vector_list = []
     number_of_points = len(border_points[0])
@@ -227,7 +229,7 @@ def set_image(marker, original, Phi):
     return original
 
 
-def initialize_border(Phi, remove_isolated_pixels=False):
+def initialize_border(Phi):
     h = Phi.shape[0]
     w = Phi.shape[1]
 
