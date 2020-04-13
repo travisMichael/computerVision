@@ -30,7 +30,7 @@ def get_algorithm_params_for_shower():
 
 
 def get_algorithm_params_for_anne():
-    image = cv2.imread("anne/in/anne_marker2.jpg")
+    image = cv2.imread("anne/in/anne_marker.jpg")
 
     h, w, _ = image.shape
     im_copy = np.copy(image)
@@ -57,7 +57,7 @@ def get_algorithm_params_for_anne():
 
 
 def get_algorithm_params_for_island():
-    image = cv2.imread("island/in/island_marker2.jpg")
+    image = cv2.imread("island/in/island_marker.jpg")
 
     h, w, _ = image.shape
     im_copy = np.copy(image)

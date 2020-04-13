@@ -136,9 +136,11 @@ def calculate_confidence_term(point_row, point_column, confidence_matrix, templa
     return c_p
 
 
-def calculate_data_term(delta_omega, isophote):
+def calculate_data_term(delta_omega, delta_phi):
     alpha = 255
-    return abs(np.dot(delta_omega, isophote)) / alpha
+    orthogonal_delta_omega = np.matmul(r_m, delta_omega)
+    # orthogonal_delta_phi = np.matmul(r_m, delta_phi)
+    return abs(np.dot(orthogonal_delta_omega, delta_phi)) / alpha
 
 
 def initialize_confidence_matrix(Phi):
@@ -164,34 +166,33 @@ def calculate_point_vectors(border_points, Phi, image):
     Omega[np.where(Phi == 0)] = 255
 
     d_omega = np.gradient(Omega)
-    d_Phi = calculate_3d_gradient(image)
+    isophote = calculate_isophote(image)
 
-    d_omega_orthogonal_unit_vector_list = []
-    d_phi_orthogonal_unit_vector_list = []
+    d_omega_unit_vector_list = []
+    isophote_vector_list = []
     number_of_points = len(border_points[0])
     for i in range(number_of_points):
         p_i = border_points[0][i]
         p_j = border_points[1][i]
         d_omega_vector = np.array([d_omega[1][p_i, p_j], d_omega[0][p_i, p_j]])
-        d_phi_vector = np.array([d_Phi[1][p_i, p_j], d_Phi[0][p_i, p_j]])
+        d_phi_vector = np.array([isophote[1][p_i, p_j], isophote[0][p_i, p_j]])
 
-        d_omega_orthogonal_unit_vector_list.append(get_orthogonal_unit_vector(d_omega_vector))
-        d_phi_orthogonal_unit_vector_list.append(d_phi_vector)
+        d_omega_unit_vector_list.append(get_unit_vector(d_omega_vector))
+        isophote_vector_list.append(d_phi_vector)
 
-    return d_omega_orthogonal_unit_vector_list, d_phi_orthogonal_unit_vector_list
-
-
-def get_orthogonal_unit_vector(vector):
-    orthogonal_vector = np.matmul(r_m, vector)
-
-    magnitude = np.linalg.norm(orthogonal_vector)
-    if magnitude < 0.0001:
-        return orthogonal_vector
-    unit_vector = orthogonal_vector / magnitude
-    return unit_vector
+    return d_omega_unit_vector_list, isophote_vector_list
 
 
-def calculate_3d_gradient(image):
+def get_unit_vector(vector):
+
+    magnitude = np.linalg.norm(vector)
+    if magnitude > 0.0001:
+        return vector / magnitude
+    return vector
+
+
+def calculate_isophote(image):
+    # first, calculate the gradient
     channel_0 = image[:, :, 0]
     channel_1 = image[:, :, 0]
     channel_2 = image[:, :, 0]
@@ -206,6 +207,7 @@ def calculate_3d_gradient(image):
     squared_sum = np.multiply(dy_0, dy_0) + np.multiply(dy_1, dy_1) + np.multiply(dy_2, dy_2)
     dy = np.sqrt(squared_sum)
 
+    # then, shift gradient directions to calculate the isophote (direction perpendicular to gradient directions)
     shift_up = np.zeros_like(dx)
     shift_down = np.zeros_like(dx)
     shift_up[0:3, :] = dx[1:4, :]
