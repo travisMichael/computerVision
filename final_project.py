@@ -21,7 +21,7 @@ def remove_object_from_image_anne():
     border = initialize_border(Phi)
     template_size = 11
 
-    run_algorithm(image, Phi, border, confidence_matrix, template_size, "anne/out/anne.jpg")
+    run_algorithm(image, Phi, border, confidence_matrix, template_size, "anne/out/anne_output.jpg")
 
 
 def remove_object_from_image_island():
