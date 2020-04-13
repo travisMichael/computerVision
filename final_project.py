@@ -35,19 +35,30 @@ def remove_object_from_image_island():
 
 
 def run_algorithm(image, Phi, border, confidence_matrix, template_size, out_file):
+    # This variable is used to assist in finding a candidate patch, which must be found in the original source pixels.
     original_Phi = np.copy(Phi)
 
-    for index in range(0, 5000):
+    # Remove patches until there are no pixels left in the border
+    while len(np.where(border == 255)[0]) > 1:
         confidence_matrix, image, Phi, border = patch_iteration(image, Phi, original_Phi, border, confidence_matrix, template_size)
-        if index % 10 == 0:
-            print(index)
-            cv2.imwrite("image_states/patch_filled" + str(index) + ".jpg", image)
 
-        border_points = np.where(border == 255)
-        if len(border_points[0]) < 1:
-            break
-
+    # Save the output of the algorithm
     cv2.imwrite(out_file, image)
+
+# def run_algorithm(image, Phi, border, confidence_matrix, template_size, out_file):
+#     original_Phi = np.copy(Phi)
+#
+#     for index in range(0, 5000):
+#         confidence_matrix, image, Phi, border = patch_iteration(image, Phi, original_Phi, border, confidence_matrix, template_size)
+#         if index % 10 == 0:
+#             print(index)
+#             cv2.imwrite("image_states/patch_filled" + str(index) + ".jpg", image)
+#
+#         border_points = np.where(border == 255)
+#         if len(border_points[0]) < 1:
+#             break
+#
+#     cv2.imwrite(out_file, image)
 
 
 if __name__ == "__main__":
