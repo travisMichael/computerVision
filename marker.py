@@ -3,7 +3,7 @@ import numpy as np
 
 
 def get_algorithm_params_for_shower():
-    image = cv2.imread("shower/in/shower_marker.jpg")
+    image = cv2.imread("image_set_2/shower_marker.jpg")
 
     h, w, _ = image.shape
     im_copy = np.copy(image)
@@ -30,7 +30,7 @@ def get_algorithm_params_for_shower():
 
 
 def get_algorithm_params_for_anne():
-    image = cv2.imread("anne/in/anne_marker.jpg")
+    image = cv2.imread("image_set_3/anne_marker.jpg")
 
     h, w, _ = image.shape
     im_copy = np.copy(image)
@@ -57,7 +57,7 @@ def get_algorithm_params_for_anne():
 
 
 def get_algorithm_params_for_island():
-    image = cv2.imread("island/in/island_marker.jpg")
+    image = cv2.imread("image_set_1/island_marker.jpg")
 
     h, w, _ = image.shape
     im_copy = np.copy(image)
