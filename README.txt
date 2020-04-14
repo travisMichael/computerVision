@@ -12,6 +12,23 @@ Then activate the environment by running the following command:
 
 source activate CS6475
 
+Make sure to create the following directories at the root project level:
+mkdir image_set_1
+mkdir image_set_2
+mkdir image_set_3
+
+Then download the images with 'original' and 'marker' in their names from the following hosted directories. Put the
+downloaded images in the corresponding folders from the previous step.
+
+Image set 1:
+https://github.com/travisMichael/computerVision/tree/master/image_set_1
+
+Image set 2:
+https://github.com/travisMichael/computerVision/tree/master/image_set_2
+
+Image set 3:
+https://github.com/travisMichael/computerVision/tree/master/image_set_3
+
 To run the algorithm on image set 1, run the following command:
 
 python final_project.py island
@@ -24,15 +41,4 @@ To run the algorithm on image set 3, run the following command:
 
 python final_project.py anne
 
-The input and output files for each image set can be found under their associated directory names.
-
-Here are links to the hosted image sets.
-
-Image set 1:
-https://github.com/travisMichael/computerVision/tree/master/image_set_1
-
-Image set 2:
-https://github.com/travisMichael/computerVision/tree/master/image_set_2
-
-Image set 3:
-https://github.com/travisMichael/computerVision/tree/master/image_set_3
+The output files for each image set can be found under their associated directory names.
