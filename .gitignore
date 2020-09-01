@@ -1,0 +1,5 @@
+object_removal/image_states/**
+object_removal/resources.zip
+.idea/**
+**.ipynb
+traffic_sign_detection/out/**

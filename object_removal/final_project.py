@@ -1,5 +1,5 @@
-from removeObject import *
-from marker import *
+from object_removal.removeObject import *
+from object_removal.marker import *
 import sys
 
 
