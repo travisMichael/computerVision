@@ -16,6 +16,42 @@ BLACK = np.array([0, 0, 0]).astype(np.float)
 WHITE = np.array([255, 255, 255]).astype(np.float)
 ORANGE = np.array([0, 128, 255]).astype(np.float)
 
+YIELD_LEFT_CORNER_FEATURE_KERNEL = img = np.array([
+    [0, 0, 0, 0, 0, 0, 1, 1, 0],
+    [0, 0, 0, 0, 0, 1, 1, 0, 0],
+    [0, 0, 0, 0, 0, 1, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 1, 0],
+]).astype(np.float)
+
+YIELD_RIGHT_CORNER_FEATURE_KERNEL = img = np.array([
+    [0, 1, 1, 0, 0, 0, 0, 0, 0],
+    [0, 0, 1, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 0, 0, 0, 0, 0],
+    [0, 1, 0, 0, 0, 0, 0, 0, 0],
+]).astype(np.float)
+
+YIELD_BOTTOM_CORNER_FEATURE_KERNEL = img = np.array([
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 1],
+    [0, 1, 0, 0, 0, 0, 0, 1, 0],
+    [0, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+]).astype(np.float)
+
 
 def traffic_light_detection(img_in, radii_range):
     """Finds the coordinates of a traffic light image given a radii
@@ -209,6 +245,18 @@ def check_for_circles(circles):
         raise RuntimeError('No circles were found by hough transform')
 
 
+# hough_result = np.copy(edges)
+# cv2.imwrite('out/edges.png', edges)
+#
+# line_image = np.zeros_like(filtered_img)
+# lines = cv2.HoughLines(hough_result, 1, 1, 70, None, 0, 0)
+
+# for i in range(0, len(lines)):
+#     l = lines[i][0]
+#     print(l)
+# cv2.line(line_image, (l[0], l[1]), (l[2], l[3]), (0,255,255), 3, cv2.LINE_AA)
+#
+# cv2.imwrite('out/lines' + str(i) + '.png', line_image)
 def yield_sign_detection(img_in):
     """Finds the centroid coordinates of a yield sign in the provided
     image.
@@ -219,7 +267,61 @@ def yield_sign_detection(img_in):
     Returns:
         (x,y) tuple of coordinates of the center of the yield sign.
     """
-    raise NotImplementedError
+    filtered_img = filter_pixels_by_value(img_in, RED).astype(np.uint8)
+    cv2.imwrite('out/filtered.png', filtered_img)
+    n = cv2.medianBlur(filtered_img, 9)
+    # n = cv2.medianBlur(n, 9)
+    # cv2.imwrite('out/median.png', n)
+
+    edges = cv2.Canny(n,90,210)
+    binary_edges = np.zeros_like(edges)
+    binary_edges[edges == 255] = 1
+    # should be two results here
+    left_corner_feature_result = cv2.filter2D(binary_edges, -1, YIELD_LEFT_CORNER_FEATURE_KERNEL)
+    right_corner_feature_result = cv2.filter2D(binary_edges, -1, YIELD_RIGHT_CORNER_FEATURE_KERNEL)
+    bottom_corner_feature_result = cv2.filter2D(binary_edges, -1, YIELD_BOTTOM_CORNER_FEATURE_KERNEL)
+
+    left_corners = np.where(left_corner_feature_result > 7)
+    right_corners = np.where(right_corner_feature_result > 7)
+    bottom_corners = np.where(bottom_corner_feature_result > 7)
+
+    if len(left_corners) != 2:
+        raise RuntimeError('Exactly two left corners were not found')
+
+    if len(right_corners) != 2:
+        raise RuntimeError('Exactly two right corners were not found')
+
+    if len(bottom_corners) != 2:
+        raise RuntimeError('Exactly two bottom corners were not found')
+
+    if left_corners[0][0] < left_corners[0][1]:
+        left_corner = left_corners[1][0], left_corners[0][0]
+    else:
+        left_corner = left_corners[1][1], left_corners[0][1]
+
+    if right_corners[0][0] < right_corners[0][1]:
+        right_corner = right_corners[1][0], right_corners[0][0]
+    else:
+        right_corner = right_corners[1][1], right_corners[0][1]
+
+    if bottom_corners[0][0] < bottom_corners[0][1]:
+        bottom_corner = bottom_corners[1][1], bottom_corners[0][1]
+    else:
+        bottom_corner = bottom_corners[1][0], bottom_corners[0][0]
+
+    x = ((left_corner[0] + right_corner[0]) / 2 + bottom_corner[0]) / 2
+    # y_1 = ((left_corner[1] + right_corner[1]) / 2 + bottom_corner[1]) / 2
+
+    mid_point_top = x, (left_corner[1] + right_corner[1]) / 2
+    mid_point_top_to_bottom_line = calculate_cartesian_equation(mid_point_top, bottom_corner)
+
+    left_bottom_mid_point = (left_corner[0] + bottom_corner[0]) / 2, (left_corner[1] + bottom_corner[1]) / 2
+    left_bottom_to_right_line = calculate_cartesian_equation(left_bottom_mid_point, right_corner)
+
+    x, y = calculate_intersection_point(mid_point_top_to_bottom_line, left_bottom_to_right_line)
+
+    return x, y
+    # raise NotImplementedError
 
 
 def stop_sign_detection(img_in):
@@ -389,19 +491,6 @@ def transform_line_to_points(lines):
                 continue
             x, y = calculate_intersection_point(equation_1, equation_2)
             points = group_points((x, y), points)
-
-    # for i in range(0, len(lines)):
-    #     l = lines[i][0]
-    #     line_distance = calculate_line_distance((l[0], l[1]), (l[2], l[3]))
-    #     if line_distance < 9:
-    #         continue
-    #     if len(points) == 0:
-    #         points.append({'x': l[0], 'y': l[1], 'count': 1})
-    #         points.append({'x': l[2], 'y': l[3], 'count': 1})
-    #     else:
-    #         # are points close to any other point? if so merge points, else add new point
-    #         points = group_points((l[0], l[1]), points)
-    #         points = group_points((l[2], l[3]), points)
 
     return points
 
