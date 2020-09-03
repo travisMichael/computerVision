@@ -52,6 +52,54 @@ YIELD_BOTTOM_CORNER_FEATURE_KERNEL = img = np.array([
     [0, 0, 0, 0, 0, 0, 0, 0, 0],
 ]).astype(np.float)
 
+TOP_DIAMOND_CORNER_FEATURE_KERNEL = img = np.array([
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 1, 1, 0, 1, 1, 0, 0],
+    [1, 1, 0, 0, 0, 0, 0, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+]).astype(np.float)
+
+RIGHT_DIAMOND_CORNER_FEATURE_KERNEL = img = np.array([
+    [0, 0, 1, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 0, 1, 1, 0, 0, 0, 0, 0],
+]).astype(np.float)
+
+BOTTOM_DIAMOND_CORNER_FEATURE_KERNEL = img = np.array([
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 1],
+    [0, 1, 0, 0, 0, 0, 0, 1, 0],
+    [0, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+]).astype(np.float)
+
+LEFT_DIAMOND_CORNER_FEATURE_KERNEL = img = np.array([
+    [0, 0, 0, 0, 0, 1, 1, 0, 0],
+    [0, 0, 0, 0, 0, 1, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 1, 0, 0],
+]).astype(np.float)
+
 
 def traffic_light_detection(img_in, radii_range):
     """Finds the coordinates of a traffic light image given a radii
@@ -372,27 +420,41 @@ def warning_sign_detection(img_in):
     # cv2.imwrite('out/median.png', n)
 
     edges = cv2.Canny(n,90,210)
-    hough_result = np.copy(edges)
-    # cv2.imwrite('out/edges.png', edges)
+    binary_edges = np.zeros_like(edges)
+    binary_edges[edges == 255] = 1
 
-    line_image = np.zeros_like(filtered_img)
-    lines = cv2.HoughLinesP(hough_result, 1, np.pi / 45, 50, None, 0, 0)
+    # TOP_DIAMOND_CORNER_FEATURE_KERNEL
+    top_corner_feature_result = cv2.filter2D(binary_edges, -1, TOP_DIAMOND_CORNER_FEATURE_KERNEL)
+    right_corner_feature_result = cv2.filter2D(binary_edges, -1, RIGHT_DIAMOND_CORNER_FEATURE_KERNEL)
+    bottom_corner_feature_result = cv2.filter2D(binary_edges, -1, BOTTOM_DIAMOND_CORNER_FEATURE_KERNEL)
+    left_corner_feature_result = cv2.filter2D(binary_edges, -1, LEFT_DIAMOND_CORNER_FEATURE_KERNEL)
 
-    # for i in range(0, len(lines)):
-    #     l = lines[i][0]
-    #     cv2.line(line_image, (l[0], l[1]), (l[2], l[3]), (0,255,255), 3, cv2.LINE_AA)
-    #
-    #     cv2.imwrite('out/lines' + str(i) + '.png', line_image)
+    top_max = np.max(top_corner_feature_result)
+    right_max = np.max(right_corner_feature_result)
+    bottom_max = np.max(bottom_corner_feature_result)
+    left_max = np.max(left_corner_feature_result)
 
-    points = transform_line_to_points(lines)
-    parallelogram_points = construct_parallelogram_point_map(points)
-    left = parallelogram_points.get('left')
-    top = parallelogram_points.get('top')
-    right = parallelogram_points.get('right')
-    bottom = parallelogram_points.get('bottom')
-    x_center = (left.get('x') + top.get('x') + right.get('x') + bottom.get('x')) * 1.0 / 4.0
-    y_center = (left.get('y') + top.get('y') + right.get('y') + bottom.get('y')) * 1.0 / 4.0
-    return x_center, y_center
+    if top_max < 7:
+        raise RuntimeError("top corner less than 7 for construction feature detection")
+
+    if right_max < 7:
+        raise RuntimeError("right corner less than 7 for construction feature detection")
+
+    if bottom_max < 7:
+        raise RuntimeError("bottom corner less than 7 for construction feature detection")
+
+    if left_max < 7:
+        raise RuntimeError("left corner less than 7 for construction feature detection")
+
+    top_corners = np.where(top_corner_feature_result == top_max)
+    right_corners = np.where(right_corner_feature_result == right_max)
+    bottom_corners = np.where(bottom_corner_feature_result == bottom_max)
+    left_corners = np.where(left_corner_feature_result == left_max)
+
+    y = (top_corners[0][0] + right_corners[0][0] + bottom_corners[0][0] + left_corners[0][0]) / 4
+    x = (top_corners[1][0] + right_corners[1][0] + bottom_corners[1][0] + left_corners[1][0]) / 4
+    return x, y
+
 
 
 def construction_sign_detection(img_in):
@@ -412,27 +474,50 @@ def construction_sign_detection(img_in):
     # cv2.imwrite('out/median.png', n)
 
     edges = cv2.Canny(n,90,210)
-    hough_result = np.copy(edges)
-    # cv2.imwrite('out/edges.png', edges)
+    binary_edges = np.zeros_like(edges)
+    binary_edges[edges == 255] = 1
 
-    line_image = np.zeros_like(filtered_img)
-    lines = cv2.HoughLinesP(hough_result, 1, np.pi / 45, 50, None, 0, 0)
+    # TOP_DIAMOND_CORNER_FEATURE_KERNEL
+    top_corner_feature_result = cv2.filter2D(binary_edges, -1, TOP_DIAMOND_CORNER_FEATURE_KERNEL)
+    right_corner_feature_result = cv2.filter2D(binary_edges, -1, RIGHT_DIAMOND_CORNER_FEATURE_KERNEL)
+    bottom_corner_feature_result = cv2.filter2D(binary_edges, -1, BOTTOM_DIAMOND_CORNER_FEATURE_KERNEL)
+    left_corner_feature_result = cv2.filter2D(binary_edges, -1, LEFT_DIAMOND_CORNER_FEATURE_KERNEL)
 
-    # for i in range(0, len(lines)):
-    #     l = lines[i][0]
-    #     cv2.line(line_image, (l[0], l[1]), (l[2], l[3]), (0,255,255), 3, cv2.LINE_AA)
-    #
-    #     cv2.imwrite('out/lines' + str(i) + '.png', line_image)
+    top_max = np.max(top_corner_feature_result)
+    right_max = np.max(right_corner_feature_result)
+    bottom_max = np.max(bottom_corner_feature_result)
+    left_max = np.max(left_corner_feature_result)
 
-    points = transform_line_to_points(lines)
-    parallelogram_points = construct_parallelogram_point_map(points)
-    left = parallelogram_points.get('left')
-    top = parallelogram_points.get('top')
-    right = parallelogram_points.get('right')
-    bottom = parallelogram_points.get('bottom')
-    x_center = (left.get('x') + top.get('x') + right.get('x') + bottom.get('x')) * 1.0 / 4.0
-    y_center = (left.get('y') + top.get('y') + right.get('y') + bottom.get('y')) * 1.0 / 4.0
-    return x_center, y_center
+    if top_max < 7:
+        raise RuntimeError("top corner less than 7 for construction feature detection")
+
+    if right_max < 7:
+        raise RuntimeError("right corner less than 7 for construction feature detection")
+
+    if bottom_max < 7:
+        raise RuntimeError("bottom corner less than 7 for construction feature detection")
+
+    if left_max < 7:
+        raise RuntimeError("left corner less than 7 for construction feature detection")
+
+    top_corners = np.where(top_corner_feature_result == top_max)
+    right_corners = np.where(right_corner_feature_result == right_max)
+    bottom_corners = np.where(bottom_corner_feature_result == bottom_max)
+    left_corners = np.where(left_corner_feature_result == left_max)
+
+    y = (top_corners[0][0] + right_corners[0][0] + bottom_corners[0][0] + left_corners[0][0]) / 4
+    x = (top_corners[1][0] + right_corners[1][0] + bottom_corners[1][0] + left_corners[1][0]) / 4
+    return x, y
+
+    # points = transform_line_to_points(lines)
+    # parallelogram_points = construct_parallelogram_point_map(points)
+    # left = parallelogram_points.get('left')
+    # top = parallelogram_points.get('top')
+    # right = parallelogram_points.get('right')
+    # bottom = parallelogram_points.get('bottom')
+    # x_center = (left.get('x') + top.get('x') + right.get('x') + bottom.get('x')) * 1.0 / 4.0
+    # y_center = (left.get('y') + top.get('y') + right.get('y') + bottom.get('y')) * 1.0 / 4.0
+    # return x_center, y_center
     # raise NotImplementedError
 
 
