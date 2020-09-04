@@ -124,11 +124,6 @@ def test(edges):
 
 # find the return the circles inside the stoplight. circles should be in order, red, yellow, green
 def get_stop_light_circles(circles, img_in):
-    # filter circles by column alignment
-    # for each, circle, move outward until dark pixel is encountered
-
-    # hough function returns 3D array for some reason?
-    circles = circles[0]
 
     for i in range(len(circles)):
         if i == 0:
@@ -225,65 +220,6 @@ def check_for_circles(circles):
         raise RuntimeError('No circles were found by hough transform')
 
 
-# def construct_parallelogram_point_map(points):
-#     if len(points) != 4:
-#         raise RuntimeError('parallelograms require 4 points')
-#
-#     # calculate left
-#     point_map = {}
-#     furthest_left = 10000
-#     furthest_right = -1
-#     highest = 10000
-#     lowest = -1
-#     furthest_left_point = None
-#     furthest_right_point = None
-#     highest_point = None
-#     lowest_point = None
-#     for point in points:
-#         x = point.get('x')
-#         y = point.get('y')
-#         if x < furthest_left:
-#             furthest_left = x
-#             furthest_left_point = point
-#         if x > furthest_right:
-#             furthest_right = x
-#             furthest_right_point = point
-#         if y < highest:
-#             highest = y
-#             highest_point = point
-#         if y > lowest:
-#             lowest = y
-#             lowest_point = point
-#
-#     point_map['left'] = furthest_left_point
-#     point_map['top'] = highest_point
-#     point_map['right'] = furthest_right_point
-#     point_map['bottom'] = lowest_point
-#     return point_map
-
-
-# def transform_line_to_points(lines):
-#     n = len(lines)
-#     points = []
-#     line_equations = []
-#
-#     for i in range(0, n):
-#         l = lines[i][0]
-#         equation = calculate_cartesian_equation((l[0], l[1]), (l[2], l[3]))
-#         line_equations.append(equation)
-#
-#     for i in range(0, n):
-#         equation_1 = line_equations[i]
-#         for j in range(0, n):
-#             equation_2 = line_equations[j]
-#             if abs(equation_1[0] - equation_2[0]) < 0.2:
-#                 continue
-#             x, y = calculate_intersection_point(equation_1, equation_2)
-#             points = group_points((x, y), points)
-#
-#     return points
-
-
 def calculate_intersection_point(line_1, line_2):
     if abs(line_1[0] - line_2[0]) < 0.1:
         raise RuntimeError('Cannot find intersection point of parallel lines')
@@ -330,6 +266,23 @@ def calculate_line_distance(point_1, point_2):
 
     return np.sqrt(x**2 + y**2)
 
+
+# returns circles found in an image or none they don't exist
+def get_circles(image, circle_list=None):
+    if circle_list is None:
+        circle_list = []
+    edges = cv2.Canny(image,90,210)
+    # cv2.imwrite("out/edges.png", edges)
+    hough_result = np.copy(edges)
+
+    circles = cv2.HoughCircles(hough_result,cv2.HOUGH_GRADIENT,1,20,param1=250,param2=20,minRadius=5,maxRadius=40)
+
+    if circles is not None:
+        for circle in circles[0]:
+            circle_list.append(circle)
+
+    return circle_list
+
 # End helper functions --------------------------------------------------------------------
 
 
@@ -362,22 +315,23 @@ def traffic_light_detection(img_in, radii_range):
         state (str): traffic light state. A value in {'red', 'yellow',
                      'green'}
     """
+    circle_list = []
+    red_img = filter_pixels_by_value(img_in, RED).astype(np.uint8)
+    yellow_img = filter_pixels_by_value(img_in, YELLOW).astype(np.uint8)
+    green_img = filter_pixels_by_value(img_in, GREEN).astype(np.uint8)
 
-    edges = cv2.Canny(img_in,90,210)
+    partial_red_img = filter_pixels_by_value(img_in, RED / 2).astype(np.uint8)
+    partial_yellow_img = filter_pixels_by_value(img_in, YELLOW / 2).astype(np.uint8)
+    partial_green_img = filter_pixels_by_value(img_in, GREEN / 2).astype(np.uint8)
 
-    hough_result = np.copy(edges)
+    circle_list = get_circles(red_img, circle_list)
+    circle_list = get_circles(yellow_img, circle_list)
+    circle_list = get_circles(green_img, circle_list)
+    circle_list = get_circles(partial_red_img, circle_list)
+    circle_list = get_circles(partial_yellow_img, circle_list)
+    circle_list = get_circles(partial_green_img, circle_list)
 
-    # test(edges)
-
-    circles = cv2.HoughCircles(hough_result,cv2.HOUGH_GRADIENT,1,20,param1=250,param2=20,minRadius=10,maxRadius=40)
-
-    # sample = np.copy(img_in)
-    # for circle in circles[0]:
-    #     cv2.circle(sample, (circle[0], circle[1]), circle[2], (255, 0, 0), 1)
-    #
-    # cv2.imwrite("out/sample.png", sample)
-
-    stop_light_circles = get_stop_light_circles(circles, img_in)
+    stop_light_circles = get_stop_light_circles(circle_list, img_in)
 
     red_value = img_in[int(stop_light_circles[0][1]), int(stop_light_circles[0][0]), :]
     yellow_value = img_in[int(stop_light_circles[1][1]), int(stop_light_circles[1][0]), :]
@@ -767,7 +721,8 @@ def traffic_sign_detection(img_in):
     result = {}
     traffic_light_result = safe_traffic_light_detection(img_in)
     if traffic_light_result is not None:
-        result['traffic_light'] = (traffic_light_result[0][0], traffic_light_result[0][1])
+        # result['traffic_light'] = (traffic_light_result[0][0], traffic_light_result[0][1])
+        result['traffic_light'] = traffic_light_result
 
     construction_sign_result = safe_construction_sign_detection(img_in)
     if construction_sign_result is not None:
