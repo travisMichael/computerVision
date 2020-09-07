@@ -16,67 +16,72 @@ BLACK = np.array([0, 0, 0]).astype(np.float)
 WHITE = np.array([255, 255, 255]).astype(np.float)
 ORANGE = np.array([0, 128, 255]).astype(np.float)
 
-YIELD_LEFT_CORNER_FEATURE_KERNEL = img = np.array([
-    [0, 0, 0, 0, 0, 0, 1, 1, 0],
-    [0, 0, 0, 0, 0, 1, 1, 0, 0],
-    [0, 0, 0, 0, 0, 1, 0, 0, 0],
-    [0, 0, 0, 0, 1, 0, 0, 0, 0],
-    [0, 0, 0, 0, 1, 0, 0, 0, 0],
-    [0, 0, 0, 0, 1, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 1, 0, 0, 0],
-    [0, 0, 0, 0, 0, 1, 1, 1, 0],
-    [0, 0, 0, 0, 0, 0, 0, 1, 0],
+YIELD_LEFT_CORNER_FEATURE_KERNEL = np.array([
+    [-1, -1, -1, -1, -1, -1, 1, 1, 0],
+    [-1, -1, -1, -1, -1, 1, 1, 0, 0],
+    [-1, -1, -1, -1, -1, 1, 0, 0, 0],
+    [-1, -1, -1, -1, 1, 0, 0, 0, 0],
+    [-1, -1, -1, -1, 1, 0, 0, 0, 0],
+    [-1, -1, -1, -1, 1, 0, 0, 0, 0],
+    [-1, -1, -1, -1, -1, 1, 0, 0, 0],
+    [-1, -1, -1, -1, -1, 1, 1, 1, 0],
+    [-1, -1, -1, -1, -1, -1, 0, 1, 0],
 ]).astype(np.float)
 
-YIELD_RIGHT_CORNER_FEATURE_KERNEL = img = np.array([
-    [0, 1, 1, 0, 0, 0, 0, 0, 0],
-    [0, 0, 1, 1, 0, 0, 0, 0, 0],
-    [0, 0, 0, 1, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 1, 0, 0, 0, 0],
-    [0, 0, 0, 0, 1, 0, 0, 0, 0],
-    [0, 0, 0, 0, 1, 0, 0, 0, 0],
-    [0, 0, 0, 1, 0, 0, 0, 0, 0],
-    [0, 1, 1, 1, 0, 0, 0, 0, 0],
-    [0, 1, 0, 0, 0, 0, 0, 0, 0],
+YIELD_RIGHT_CORNER_FEATURE_KERNEL = np.array([
+    [1, 1, 0, -1, -1, -1, -1, -1, -1],
+    [1, 1, 1, 1, -1, -1, -1, -1, -1],
+    [0, 0, 1, 1, 0, -1, -1, -1, -1],
+    [0, 0, 0, 0, 1, -1, -1, -1, -1],
+    [0, 0, 0, 0, 1, -1, -1, -1, -1],
+    [0, 0, 0, 0, 1, -1, -1, -1, -1],
+    [0, 0, 0, 1, 0, -1, -1, -1, -1],
+    [0, 1, 1, 1, -1, -1, -1, -1, -1],
+    [1, 1, 1, -1, -1, -1, -1, -1, -1],
 ]).astype(np.float)
 
-YIELD_BOTTOM_CORNER_FEATURE_KERNEL = img = np.array([
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [1, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 1],
-    [0, 1, 0, 0, 0, 0, 0, 1, 0],
-    [0, 1, 1, 1, 1, 1, 1, 1, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+YIELD_BOTTOM_CORNER_FEATURE_KERNEL = np.array([
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+    [0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+    [0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0],
+    [0, -1, -1, 1, 1, 1, 1, 1, -1, -1, 0],
+    [0, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0],
+    [0, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0],
+    [0, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0],
+    [0, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0],
+    [0, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0],
 ]).astype(np.float)
 
-TOP_DIAMOND_CORNER_FEATURE_KERNEL = img = np.array([
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+TOP_DIAMOND_CORNER_FEATURE_KERNEL = np.array([
+    [-1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [-1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [-1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [-1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [-1, -1, 0, 1, 1, 1, 0, -1, -1],
     [0, 0, 1, 1, 0, 1, 1, 0, 0],
     [1, 1, 0, 0, 0, 0, 0, 1, 1],
     [1, 0, 0, 0, 0, 0, 0, 0, 1],
     [0, 0, 0, 0, 0, 0, 0, 0, 0],
 ]).astype(np.float)
 
-RIGHT_DIAMOND_CORNER_FEATURE_KERNEL = img = np.array([
-    [0, 0, 1, 1, 0, 0, 0, 0, 0],
-    [0, 0, 0, 1, 0, 0, 0, 0, 0],
+RIGHT_DIAMOND_CORNER_FEATURE_KERNEL = np.array([
+    [0, 1, 1, -1, 0, 0, 0, 0, 0],
+    [0, 1, 1, 1, -1, 0, 0, 0, 0],
+    [0, 0, 0, 1, -1, 0, 0, 0, 0],
     [0, 0, 0, 0, 1, 0, 0, 0, 0],
     [0, 0, 0, 0, 1, 0, 0, 0, 0],
     [0, 0, 0, 0, 1, 0, 0, 0, 0],
     [0, 0, 0, 0, 1, 0, 0, 0, 0],
     [0, 0, 0, 0, 1, 0, 0, 0, 0],
-    [0, 0, 0, 1, 0, 0, 0, 0, 0],
-    [0, 0, 1, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 1, -1, 0, 0, 0, 0],
+    [0, 1, 1, 1, -1, 0, 0, 0, 0],
+    [0, 1, 1, -1, -1, 0, 0, 0, 0],
+
 ]).astype(np.float)
 
-BOTTOM_DIAMOND_CORNER_FEATURE_KERNEL = img = np.array([
+BOTTOM_DIAMOND_CORNER_FEATURE_KERNEL = np.array([
     [0, 0, 0, 0, 0, 0, 0, 0, 0],
     [1, 0, 0, 0, 0, 0, 0, 0, 1],
     [1, 0, 0, 0, 0, 0, 0, 0, 1],
@@ -88,19 +93,79 @@ BOTTOM_DIAMOND_CORNER_FEATURE_KERNEL = img = np.array([
     [0, 0, 0, 0, 0, 0, 0, 0, 0],
 ]).astype(np.float)
 
-LEFT_DIAMOND_CORNER_FEATURE_KERNEL = img = np.array([
-    [0, 0, 0, 0, 0, 1, 1, 0, 0],
-    [0, 0, 0, 0, 0, 1, 0, 0, 0],
-    [0, 0, 0, 0, 1, 0, 0, 0, 0],
-    [0, 0, 0, 0, 1, 0, 0, 0, 0],
-    [0, 0, 0, 0, 1, 0, 0, 0, 0],
-    [0, 0, 0, 0, 1, 0, 0, 0, 0],
-    [0, 0, 0, 0, 1, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 1, 0, 0, 0],
-    [0, 0, 0, 0, 0, 1, 1, 0, 0],
+# LEFT_DIAMOND_CORNER_FEATURE_KERNEL = np.array([
+#     [0, 0, 0, 0, 0, 1, 1, 0, 0],
+#     [0, 0, 0, 0, 0, 1, 0, 0, 0],
+#     [0, 0, 0, 0, 1, 0, 0, 0, 0],
+#     [0, 0, 0, 0, 1, 0, 0, 0, 0],
+#     [0, 0, 0, 0, 1, 0, 0, 0, 0],
+#     [0, 0, 0, 0, 1, 0, 0, 0, 0],
+#     [0, 0, 0, 0, 1, 0, 0, 0, 0],
+#     [0, 0, 0, 0, 0, 1, 0, 0, 0],
+#     [0, 0, 0, 0, 0, 1, 1, 0, 0],
+# ]).astype(np.float)
+
+LEFT_DIAMOND_CORNER_FEATURE_KERNEL = np.array([
+    [-1, -1, -1, -1, -1, 1, 1, 1, 0],
+    [-1, -1, -1, -1, -1, 1, 1, 0, 0],
+    [-1, -1, -1, -1, 0, 1, 0, 0, 0],
+    [-1, -1, -1, -1, 1, 0, 0, 0, 0],
+    [-1, -1, -1, -1, 1, 0, 0, 0, 0],
+    [-1, -1, -1, -1, 1, 0, 0, 0, 0],
+    [-1, -1, -1, -1, 0, 1, 0, 0, 0],
+    [-1, -1, -1, -1, -1, 1, 0, 0, 0],
+    [-1, -1, -1, -1, -1, 1, 1, 0, 0],
 ]).astype(np.float)
 
+HAS_TOP_FEATURE_KERNEL = np.array([
+    [1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 1, 1, 1, 1, 1, 0, 0],
+    [0, 0, 0, 1, 1, 1, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+]).astype(np.float)
+
+
+HAS_BOTTOM_FEATURE_KERNEL = np.array([
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 1, 1, 1, 0, 0, 0],
+    [0, 0, 1, 1, 1, 1, 1, 0, 0],
+    [0, 1, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1],
+]).astype(np.float)
+
+
 # helper functions ------
+def fill_pixels_if_enclosed(binary_image):
+    result = np.copy(binary_image)
+
+    has_top_feature = cv2.filter2D(binary_image, -1, HAS_TOP_FEATURE_KERNEL)
+    has_bottom_feature = cv2.filter2D(binary_image, -1, HAS_BOTTOM_FEATURE_KERNEL)
+
+    has_top_and_bottom = np.logical_and(has_top_feature, has_bottom_feature)
+    result = np.logical_or(result, has_top_and_bottom).astype(np.uint8) * 255
+    return result
+
 
 def draw_circles(circles, img_in):
     sample = np.copy(img_in)
@@ -210,6 +275,16 @@ def filter_pixels_by_value(img, value, threshold=55):
     return new_image
 
 
+def transform_to_binary_image(img):
+    h, w, _ = img.shape
+    binary_image = np.zeros((h, w)).astype(np.uint8)
+
+    result = np.sum(img, axis=2)
+    binary_image[result > 1] = 1
+
+    return binary_image
+
+
 def check_for_circles(circles):
     if circles is None:
         raise RuntimeError('No circles were found by hough transform')
@@ -239,13 +314,13 @@ def calculate_cartesian_equation(point_1, point_2):
 
 
 # this function will create a new point or merge points depending on how close the points are
-def group_points(point, points):
+def group_points(point, points, threshold=20):
     has_merged = False
     for p in points:
         x = p.get('x')
         y = p.get('y')
         point_distance = calculate_line_distance(point, (x, y))
-        if point_distance < 20:
+        if point_distance < threshold:
             count = p.get('count')
             new_x = (x * count + point[0]) / (count + 1)
             new_y = (y * count + point[1]) / (count + 1)
@@ -331,6 +406,9 @@ def traffic_light_detection(img_in, radii_range):
     circle_list = get_circles(partial_yellow_img, circle_list)
     circle_list = get_circles(partial_green_img, circle_list)
 
+    if len(circle_list) < 3:
+        raise RuntimeError('Expected to detect at least 3 circles for stop light detection')
+
     stop_light_circles = get_stop_light_circles(circle_list, img_in)
 
     red_value = img_in[int(stop_light_circles[0][1]), int(stop_light_circles[0][0]), :]
@@ -366,10 +444,10 @@ def yield_sign_detection(img_in):
     Returns:
         (x,y) tuple of coordinates of the center of the yield sign.
     """
-    filtered_img = filter_pixels_by_value(img_in, RED).astype(np.uint8)
-    cv2.imwrite('out/filtered.png', filtered_img)
+    filtered_img = filter_pixels_by_value(img_in, RED, threshold=80).astype(np.uint8)
+    # cv2.imwrite('out/filtered.png', filtered_img)
     n = cv2.medianBlur(filtered_img, 9)
-    # n = cv2.medianBlur(n, 9)
+    n = cv2.medianBlur(n, 9)
     # cv2.imwrite('out/median.png', n)
 
     edges = cv2.Canny(n,90,210)
@@ -384,53 +462,73 @@ def yield_sign_detection(img_in):
     right_max = np.max(right_corner_feature_result)
     bottom_max = np.max(bottom_corner_feature_result)
 
-    if left_max <= 8:
+    if left_max < 7:
         raise RuntimeError('Left corner feature not found')
 
-    if right_max <= 8:
+    if right_max < 7:
         raise RuntimeError('Right corner feature not found')
 
-    if bottom_max <= 8:
+    if bottom_max < 7:
         raise RuntimeError('Bottom corner feature not found')
 
-    left_corners = np.where(left_corner_feature_result == left_max)
-    right_corners = np.where(right_corner_feature_result == right_max)
-    bottom_corners = np.where(bottom_corner_feature_result == bottom_max)
+    left_corners = np.where(left_corner_feature_result >= 7)
+    right_corners = np.where(right_corner_feature_result >= 7)
+    bottom_corners = np.where(bottom_corner_feature_result >= 7)
 
-    if len(left_corners[0]) != 2:
+    left_corner_points = []
+    for i in range(len(left_corners[0])):
+        point = left_corners[1][i], left_corners[0][i]
+        inward_point_value = img_in[point[1] + 2, point[0] + 2]
+        is_red_error = rmse(inward_point_value, RED)
+        inward_point_value = img_in[point[1] + 30, point[0] + 30]
+        is_white_error = rmse(inward_point_value, WHITE)
+        if is_red_error < 20 and is_white_error < 20:
+            left_corner_points = group_points(point, left_corner_points, threshold=6)
+
+    right_corner_points = []
+    for i in range(len(right_corners[0])):
+        point = right_corners[1][i], right_corners[0][i]
+        inward_point_value = img_in[point[1] + 2, point[0] - 2]
+        is_red_error = rmse(inward_point_value, RED)
+        inward_point_value = img_in[point[1] + 30, point[0] - 30]
+        is_white_error = rmse(inward_point_value, WHITE)
+        if is_red_error < 20 and is_white_error < 20:
+            right_corner_points = group_points(point, right_corner_points, threshold=6)
+
+    bottom_corner_points = []
+    for i in range(len(bottom_corners[0])):
+        point = bottom_corners[1][i], bottom_corners[0][i]
+        inward_point_value = img_in[point[1] - 2, point[0]]
+        is_red_error = rmse(inward_point_value, RED)
+        inward_point_value = img_in[point[1] - 30, point[0]]
+        is_white_error = rmse(inward_point_value, WHITE)
+        if is_red_error < 20 and is_white_error < 20:
+            bottom_corner_points = group_points(point, bottom_corner_points, threshold=6)
+
+    if len(left_corner_points) != 1:
         raise RuntimeError('Exactly two left corners were not found')
 
-    if len(right_corners[0]) != 2:
+    if len(right_corner_points) != 1:
         raise RuntimeError('Exactly two right corners were not found')
 
-    if len(bottom_corners[0]) != 2:
+    if len(bottom_corner_points) != 1:
         raise RuntimeError('Exactly two bottom corners were not found')
 
-    if left_corners[0][0] < left_corners[0][1]:
-        left_corner = left_corners[1][0], left_corners[0][0]
-    else:
-        left_corner = left_corners[1][1], left_corners[0][1]
-
-    if right_corners[0][0] < right_corners[0][1]:
-        right_corner = right_corners[1][0], right_corners[0][0]
-    else:
-        right_corner = right_corners[1][1], right_corners[0][1]
-
-    if bottom_corners[0][0] < bottom_corners[0][1]:
-        bottom_corner = bottom_corners[1][1], bottom_corners[0][1]
-    else:
-        bottom_corner = bottom_corners[1][0], bottom_corners[0][0]
-
-    x = ((left_corner[0] + right_corner[0]) / 2 + bottom_corner[0]) / 2
+    x = ((left_corner_points[0].get('x') + right_corner_points[0].get('x')) / 2 + bottom_corner_points[0].get('x')) / 2
     # y_1 = ((left_corner[1] + right_corner[1]) / 2 + bottom_corner[1]) / 2
 
-    mid_point_top = x, (left_corner[1] + right_corner[1]) / 2
-    mid_point_top_to_bottom_line = calculate_cartesian_equation(mid_point_top, bottom_corner)
+    # mid_point_top = x, (left_corner_points[0].get('y') + right_corner_points[0].get('y')) / 2
+    left_corner = (left_corner_points[0].get('x'), left_corner_points[0].get('y'))
+    right_corner = (right_corner_points[0].get('x'), right_corner_points[0].get('y'))
+    bottom_corner = (bottom_corner_points[0].get('x'), bottom_corner_points[0].get('y'))
 
-    left_bottom_mid_point = (left_corner[0] + bottom_corner[0]) / 2, (left_corner[1] + bottom_corner[1]) / 2
-    left_bottom_to_right_line = calculate_cartesian_equation(left_bottom_mid_point, right_corner)
+    left_bottom_mid = ((left_corner[0] + bottom_corner[0]) / 2, (left_corner[1] + bottom_corner[1]) / 2)
+    right_bottom_mid = ((right_corner[0] + bottom_corner[0]) / 2, (right_corner[1] + bottom_corner[1]) / 2)
 
-    x, y = calculate_intersection_point(mid_point_top_to_bottom_line, left_bottom_to_right_line)
+    mid_point_left_to_bottom_line = calculate_cartesian_equation(left_corner, right_bottom_mid)
+    mid_point_right_to_bottom_line = calculate_cartesian_equation(right_corner, left_bottom_mid)
+
+    x, y = calculate_intersection_point(mid_point_left_to_bottom_line, mid_point_right_to_bottom_line)
 
     return x, y
 
@@ -445,14 +543,23 @@ def stop_sign_detection(img_in):
     Returns:
         (x,y) tuple of the coordinates of the center of the stop sign.
     """
-    filtered_img = filter_pixels_by_value(img_in, RED).astype(np.uint8)
-    # cv2.imwrite('out/filtered.png', filtered_img)
+    O = np.array([70, 68, 160]).astype(np.float)
+    O = np.array([40, 26, 134]).astype(np.float)
+    # filtered_img = filter_pixels_by_value(img_in, O, threshold=50).astype(np.uint8)
+    filtered_img = filter_pixels_by_value(img_in, RED, threshold=90).astype(np.uint8)
+    cv2.imwrite('out/filtered.png', filtered_img)
 
-    n = cv2.medianBlur(filtered_img, 9)
-    n = cv2.medianBlur(n, 9)
-    # cv2.imwrite('out/median.png', n)
+    # n = cv2.medianBlur(filtered_img, 5)
+    # n = cv2.medianBlur(n, 9)
+    # cv2.imwrite('out/median.png', n) 141 473
+    binary_filtered_img = transform_to_binary_image(filtered_img)
 
-    edges = cv2.Canny(n,90,210)
+    enclosed = fill_pixels_if_enclosed(binary_filtered_img)
+    enclosed = fill_pixels_if_enclosed(enclosed)
+
+    cv2.imwrite('out/enclosed.png', enclosed)
+
+    edges = cv2.Canny(enclosed,90,210)
 
     hough_result = np.copy(edges)
 
@@ -466,11 +573,11 @@ def stop_sign_detection(img_in):
         y = int(circle[1])
         r = int(circle[2] / 2)
         temp = img_in[y, x-r:x+r, :]
-        if np.average(temp < 170):
+        if np.average(temp) < 170:
             return x, y
         # print(temp)
 
-    return int(circles[0][0][0]), int(circles[0][0][1])
+    raise RuntimeError('Red circles found, but none match stop sign pattern')
 
 
 def warning_sign_detection(img_in):
@@ -484,7 +591,7 @@ def warning_sign_detection(img_in):
         (x,y) tuple of the coordinates of the center of the sign.
     """
     filtered_img = filter_pixels_by_value(img_in, YELLOW).astype(np.uint8)
-    # cv2.imwrite('out/filtered.png', filtered_img)
+    cv2.imwrite('out/filtered.png', filtered_img)
     n = cv2.medianBlur(filtered_img, 9)
     # n = cv2.medianBlur(n, 9)
     # cv2.imwrite('out/median.png', n)
@@ -536,6 +643,13 @@ def construction_sign_detection(img_in):
     Returns:
         (x,y) tuple of the coordinates of the center of the sign.
     """
+    # OR = np.array([40, 64, 150]).astype(np.float)
+    # filtered_img = filter_pixels_by_value(img_in, OR, threshold=50).astype(np.uint8)
+    # cv2.imwrite('out/filtered.png', filtered_img)
+    # n = cv2.medianBlur(filtered_img, 5)
+    # n = cv2.medianBlur(n, 5)
+    # cv2.imwrite('out/median.png', n)
+
     filtered_img = filter_pixels_by_value(img_in, ORANGE).astype(np.uint8)
     # cv2.imwrite('out/filtered.png', filtered_img)
     n = cv2.medianBlur(filtered_img, 9)
@@ -589,7 +703,9 @@ def do_not_enter_sign_detection(img_in):
     Returns:
         (x,y) typle of the coordinates of the center of the sign.
     """
-    edges = cv2.Canny(img_in,90,210)
+    filtered_img = filter_pixels_by_value(img_in, RED, threshold=130).astype(np.uint8)
+    cv2.imwrite('out/filtered.png', filtered_img)
+    edges = cv2.Canny(filtered_img,90,210)
 
     hough_result = np.copy(edges)
 
@@ -606,13 +722,13 @@ def do_not_enter_sign_detection(img_in):
         radius = circle[2]
         center_value = img_in[y, x, :]
         is_center_white_error = rmse(center_value, WHITE)
-        if is_center_white_error > 20:
+        if is_center_white_error > 40:
             continue
         upper_half_value = img_in[y - int(radius / 2), x, :]
         lower_half_value = img_in[y + int(radius / 2), x, :]
         is_upper_half_red_error = rmse(upper_half_value, RED)
         is_lower_half_red_error = rmse(lower_half_value, RED)
-        if is_lower_half_red_error < 20 and is_upper_half_red_error < 20:
+        if is_lower_half_red_error < 70 and is_upper_half_red_error < 70:
             return x, y
 
     raise RuntimeError('No dne signs were found')
@@ -776,7 +892,13 @@ def traffic_sign_detection_noisy(img_in):
               These are just example values and may not represent a
               valid scene.
     """
-    raise NotImplementedError
+    blur = cv2.GaussianBlur(img_in,(5,5),0)
+    median = cv2.medianBlur(img_in,5)
+    cv2.imwrite('out/blur.png', blur)
+    cv2.imwrite('out/median.png', median)
+    result = traffic_sign_detection(median)
+    return result
+    # raise NotImplementedError
 
 
 def traffic_sign_detection_challenge(img_in):
@@ -797,4 +919,8 @@ def traffic_sign_detection_challenge(img_in):
               These are just example values and may not represent a
               valid scene.
     """
-    raise NotImplementedError
+    blur = cv2.GaussianBlur(img_in,(5,5),0)
+    median = cv2.medianBlur(blur,5)
+    result = traffic_sign_detection(median)
+    return result
+    # raise NotImplementedError
