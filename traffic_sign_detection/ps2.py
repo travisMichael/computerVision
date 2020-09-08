@@ -118,12 +118,12 @@ LEFT_DIAMOND_CORNER_FEATURE_KERNEL = np.array([
 ]).astype(np.float)
 
 HAS_TOP_FEATURE_KERNEL = np.array([
-    [1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [0, 1, 1, 1, 1, 1, 1, 1, 0],
-    [0, 0, 1, 1, 1, 1, 1, 0, 0],
-    [0, 0, 0, 1, 1, 1, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
     [0, 0, 0, 0, 1, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -146,12 +146,28 @@ HAS_BOTTOM_FEATURE_KERNEL = np.array([
     [0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 1, 0, 0, 0, 0],
-    [0, 0, 0, 1, 1, 1, 0, 0, 0],
-    [0, 0, 1, 1, 1, 1, 1, 0, 0],
-    [0, 1, 1, 1, 1, 1, 1, 1, 0],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 0, 0],
+]).astype(np.float)
+
+HAS_LEFT_FEATURE_KERNEL = np.array([
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+]).astype(np.float)
+
+HAS_RIGHT_FEATURE_KERNEL = np.array([
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 ]).astype(np.float)
 
 
@@ -162,8 +178,14 @@ def fill_pixels_if_enclosed(binary_image):
     has_top_feature = cv2.filter2D(binary_image, -1, HAS_TOP_FEATURE_KERNEL)
     has_bottom_feature = cv2.filter2D(binary_image, -1, HAS_BOTTOM_FEATURE_KERNEL)
 
+    has_left_feature = cv2.filter2D(binary_image, -1, HAS_LEFT_FEATURE_KERNEL)
+    has_right_feature = cv2.filter2D(binary_image, -1, HAS_RIGHT_FEATURE_KERNEL)
+
     has_top_and_bottom = np.logical_and(has_top_feature, has_bottom_feature)
     result = np.logical_or(result, has_top_and_bottom).astype(np.uint8) * 255
+
+    has_left_and_right = np.logical_and(has_left_feature, has_right_feature)
+    result = np.logical_or(result, has_left_and_right).astype(np.uint8) * 255
     return result
 
 
@@ -258,23 +280,6 @@ def sort_stop_lights(stop_lights):
     return stop_lights[min_arg_value], stop_lights[middle_arg], stop_lights[max_arg_value]
 
 
-def filter_pixels_by_value(img, value, threshold=55):
-    img_copy = np.copy(img).astype(np.float)
-
-    img_with_values = np.zeros_like(img_copy)
-    img_with_values[:, :] = value
-
-    diff = img_copy - img_with_values
-    squared = diff ** 2
-    error = np.sqrt(np.sum(squared, axis=2))
-
-    pixels_to_keep = error < threshold
-    new_image = np.zeros_like(img_copy)
-    new_image[pixels_to_keep] = value
-
-    return new_image
-
-
 def transform_to_binary_image(img):
     h, w, _ = img.shape
     binary_image = np.zeros((h, w)).astype(np.uint8)
@@ -357,6 +362,40 @@ def get_circles(image, circle_list=None):
             circle_list.append(circle)
 
     return circle_list
+
+
+def filter_pixels_by_value(img, value, threshold=55):
+    img_copy = np.copy(img).astype(np.float)
+
+    img_with_values = np.zeros_like(img_copy)
+    img_with_values[:, :] = value
+
+    diff = img_copy - img_with_values
+    squared = diff ** 2
+    error = np.sqrt(np.sum(squared, axis=2))
+
+    pixels_to_keep = error < threshold
+    new_image = np.zeros_like(img_copy)
+    new_image[pixels_to_keep] = value
+
+    return new_image
+
+
+def merge_colors_in_image(img, color_to_look_for, color_to_change_to, threshold=20):
+    img_copy = np.copy(img).astype(np.float)
+
+    img_with_values = np.zeros_like(img).astype(np.float)
+    img_with_values[:, :] = color_to_look_for
+
+    diff = img_copy - img_with_values
+    squared = diff ** 2
+    error = np.sqrt(np.sum(squared, axis=2))
+
+    pixels_to_keep = error < threshold
+    # new_image = np.zeros_like(img_copy)
+    img_copy[pixels_to_keep] = color_to_change_to
+
+    return img_copy
 
 # End helper functions --------------------------------------------------------------------
 
@@ -514,10 +553,6 @@ def yield_sign_detection(img_in):
     if len(bottom_corner_points) != 1:
         raise RuntimeError('Exactly two bottom corners were not found')
 
-    x = ((left_corner_points[0].get('x') + right_corner_points[0].get('x')) / 2 + bottom_corner_points[0].get('x')) / 2
-    # y_1 = ((left_corner[1] + right_corner[1]) / 2 + bottom_corner[1]) / 2
-
-    # mid_point_top = x, (left_corner_points[0].get('y') + right_corner_points[0].get('y')) / 2
     left_corner = (left_corner_points[0].get('x'), left_corner_points[0].get('y'))
     right_corner = (right_corner_points[0].get('x'), right_corner_points[0].get('y'))
     bottom_corner = (bottom_corner_points[0].get('x'), bottom_corner_points[0].get('y'))
@@ -542,16 +577,20 @@ def stop_sign_detection(img_in):
 
     Returns:
         (x,y) tuple of the coordinates of the center of the stop sign.
-    """
-    O = np.array([70, 68, 160]).astype(np.float)
-    O = np.array([40, 26, 134]).astype(np.float)
-    # filtered_img = filter_pixels_by_value(img_in, O, threshold=50).astype(np.uint8)
-    filtered_img = filter_pixels_by_value(img_in, RED, threshold=90).astype(np.uint8)
+    """ # 211, 484 215, 453
+    red_variant_1 = np.array([70, 68, 160]).astype(np.float)
+    red_variant_3 = np.array([40, 26, 134]).astype(np.float)
+    red_variant_2 = np.array([59, 71, 175]).astype(np.float)
+    red_variant_4 = np.array([70, 75, 230]).astype(np.float)
+
+    merged = merge_colors_in_image(img_in, red_variant_1, RED, threshold=40)
+    merged = merge_colors_in_image(merged, red_variant_2, RED, threshold=40)
+    merged = merge_colors_in_image(merged, red_variant_3, RED, threshold=40)
+    merged = merge_colors_in_image(merged, red_variant_4, RED, threshold=40)
+    filtered_img = filter_pixels_by_value(merged, RED, threshold=50).astype(np.uint8)
+
     cv2.imwrite('out/filtered.png', filtered_img)
 
-    # n = cv2.medianBlur(filtered_img, 5)
-    # n = cv2.medianBlur(n, 9)
-    # cv2.imwrite('out/median.png', n) 141 473
     binary_filtered_img = transform_to_binary_image(filtered_img)
 
     enclosed = fill_pixels_if_enclosed(binary_filtered_img)
@@ -566,16 +605,19 @@ def stop_sign_detection(img_in):
     circles = cv2.HoughCircles(hough_result,cv2.HOUGH_GRADIENT,1,20,param1=250,param2=20,minRadius=20,maxRadius=60)
 
     check_for_circles(circles)
+
+    points = []
+    for circle in circles[0]:
+        points = group_points((circle[0], circle[1]), points, threshold=30)
     # draw_circles(circles, img_in)
     # check circles for alternating red-white pixels in circle center
-    for circle in circles[0]:
-        x = int(circle[0])
-        y = int(circle[1])
-        r = int(circle[2] / 2)
-        temp = img_in[y, x-r:x+r, :]
+    for point in points:
+        x = int(point.get('x'))
+        y = int(point.get('y'))
+        # r = int(circle[2] / 2)
+        temp = img_in[y, x-8:x+8, :]
         if np.average(temp) < 170:
             return x, y
-        # print(temp)
 
     raise RuntimeError('Red circles found, but none match stop sign pattern')
 
@@ -649,14 +691,20 @@ def construction_sign_detection(img_in):
     # n = cv2.medianBlur(filtered_img, 5)
     # n = cv2.medianBlur(n, 5)
     # cv2.imwrite('out/median.png', n)
+    # orange_variant_1 = np.array([40, 64, 150]).astype(np.float)
+    # merged = merge_colors_in_image(img_in, orange_variant_1, ORANGE, threshold=50)
 
     filtered_img = filter_pixels_by_value(img_in, ORANGE).astype(np.uint8)
     # cv2.imwrite('out/filtered.png', filtered_img)
-    n = cv2.medianBlur(filtered_img, 9)
+    # n = cv2.medianBlur(filtered_img, 9)
     # n = cv2.medianBlur(n, 9)
-    # cv2.imwrite('out/median.png', n)
 
-    edges = cv2.Canny(n,90,210)
+    binary_filtered_img = transform_to_binary_image(filtered_img)
+    enclosed = fill_pixels_if_enclosed(binary_filtered_img)
+    enclosed = fill_pixels_if_enclosed(enclosed)
+    # cv2.imwrite('out/enclosed.png', enclosed)
+
+    edges = cv2.Canny(enclosed,90,210)
     binary_edges = np.zeros_like(edges)
     binary_edges[edges == 255] = 1
 
@@ -703,9 +751,28 @@ def do_not_enter_sign_detection(img_in):
     Returns:
         (x,y) typle of the coordinates of the center of the sign.
     """
-    filtered_img = filter_pixels_by_value(img_in, RED, threshold=130).astype(np.uint8)
+    red_variant_1 = np.array([70, 68, 160]).astype(np.float)
+    red_variant_3 = np.array([40, 26, 134]).astype(np.float)
+    red_variant_2 = np.array([59, 71, 175]).astype(np.float)
+    red_variant_4 = np.array([70, 75, 230]).astype(np.float)
+
+    merged = merge_colors_in_image(img_in, red_variant_1, RED, threshold=40)
+    merged = merge_colors_in_image(merged, red_variant_2, RED, threshold=40)
+    merged = merge_colors_in_image(merged, red_variant_3, RED, threshold=40)
+    merged = merge_colors_in_image(merged, red_variant_4, RED, threshold=40)
+    filtered_img = filter_pixels_by_value(merged, RED, threshold=50).astype(np.uint8)
+
+    # filtered_img = filter_pixels_by_value(img_in, RED, threshold=80).astype(np.uint8)
     cv2.imwrite('out/filtered.png', filtered_img)
-    edges = cv2.Canny(filtered_img,90,210)
+
+    binary_filtered_img = transform_to_binary_image(filtered_img)
+
+    enclosed = fill_pixels_if_enclosed(binary_filtered_img)
+    enclosed = fill_pixels_if_enclosed(enclosed)
+
+    cv2.imwrite('out/enclosed.png', enclosed)
+
+    edges = cv2.Canny(enclosed,90,210)
 
     hough_result = np.copy(edges)
 
@@ -722,13 +789,15 @@ def do_not_enter_sign_detection(img_in):
         radius = circle[2]
         center_value = img_in[y, x, :]
         is_center_white_error = rmse(center_value, WHITE)
-        if is_center_white_error > 40:
+        if is_center_white_error > 65:
             continue
         upper_half_value = img_in[y - int(radius / 2), x, :]
         lower_half_value = img_in[y + int(radius / 2), x, :]
         is_upper_half_red_error = rmse(upper_half_value, RED)
         is_lower_half_red_error = rmse(lower_half_value, RED)
-        if is_lower_half_red_error < 70 and is_upper_half_red_error < 70:
+        if is_lower_half_red_error < 100 and is_upper_half_red_error < 100:
+            return x, y
+        if enclosed[y + int(radius / 2), x] == 255 and enclosed[y - int(radius / 2), x] == 255:
             return x, y
 
     raise RuntimeError('No dne signs were found')
@@ -894,11 +963,23 @@ def traffic_sign_detection_noisy(img_in):
     """
     blur = cv2.GaussianBlur(img_in,(5,5),0)
     median = cv2.medianBlur(img_in,5)
-    cv2.imwrite('out/blur.png', blur)
-    cv2.imwrite('out/median.png', median)
+    # cv2.imwrite('out/blur.png', blur)
+    # cv2.imwrite('out/median.png', median)
     result = traffic_sign_detection(median)
     return result
-    # raise NotImplementedError
+
+
+# def merge_colors(img):
+#
+#     red_variant_1 = np.array([70, 68, 160]).astype(np.float)
+#     red_variant_2 = np.array([40, 26, 134]).astype(np.float)
+#     orange_variant_1 = np.array([40, 64, 150]).astype(np.float)
+#
+#     # merged = merge_colors_in_image(img, red_variant_1, RED, threshold=40)
+#     # merged = merge_colors_in_image(merged, red_variant_2, RED, threshold=40)
+#     merged = merge_colors_in_image(img, orange_variant_1, ORANGE, threshold=60)
+#
+#     return merged
 
 
 def traffic_sign_detection_challenge(img_in):
@@ -919,8 +1000,11 @@ def traffic_sign_detection_challenge(img_in):
               These are just example values and may not represent a
               valid scene.
     """
-    blur = cv2.GaussianBlur(img_in,(5,5),0)
-    median = cv2.medianBlur(blur,5)
-    result = traffic_sign_detection(median)
+
+    # img = merge_colors(img_in)
+    # cv2.imwrite('out/img.png', img)
+    # result = traffic_sign_detection(img)
+    # return result
+
+    result = traffic_sign_detection(img_in)
     return result
-    # raise NotImplementedError
