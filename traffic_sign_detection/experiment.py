@@ -9,7 +9,6 @@ implementation and output images so you can verify your results.
 import cv2
 
 import ps2
-import numpy as np
 
 
 def draw_tl_center(image_in, center, state):
@@ -39,13 +38,21 @@ def draw_tl_center(image_in, center, state):
         traffic light center and text that presents the numerical
         coordinates with the traffic light state.
     """
-    img_copy = np.copy(image_in)
-    cv2.putText(img_copy, '(' + str(center[0]) + ', ' + str(center[1]) + ')', (5, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
+    h, w, _ = image_in.shape
+    place_left = False
+    x = int(center[0])
+    y = int(center[1])
 
-    # cv2.putText(img_copy, '*', (int(center[0]), int(center[1])), cv2.FONT_HERSHEY_SIMPLEX, 5, (255, 255, 255))
-    cv2.circle(img_copy, (int(center[0]), int(center[1])), 2, (0, 0, 0), 1)
-    return img_copy
-    # raise NotImplementedError
+    if center[1] > w / 2:
+        place_left = True
+
+    if place_left:
+        cv2.putText(image_in, '((' + str(x) + ', ' + str(y) + '), ' + state + ')', (x - 180, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
+    else:
+        cv2.putText(image_in, '((' + str(x) + ', ' + str(y) + '), ' + state + ')', (x + 60, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
+
+    cv2.circle(image_in, (x, y), 2, (0, 0, 0), 5)
+    return image_in
 
 
 def mark_traffic_signs(image_in, signs_dict):
@@ -70,7 +77,31 @@ def mark_traffic_signs(image_in, signs_dict):
         numpy.array: output image showing markers on each traffic
         sign.
     """
-    raise NotImplementedError
+
+    for key in signs_dict:
+        result = signs_dict.get(key)
+        if key == 'traffic_light':
+            center, state = result
+            x = int(center[0])
+            y = int(center[1])
+            cv2.circle(image_in, (x, y), 2, (0, 0, 0), 5)
+            cv2.rectangle(image_in,(x - 50, y - 55),(x + 32, y - 60),(0,0,0),30)
+            cv2.putText(image_in, '(' + str(x) + ', ' + str(y) + ')', (x - 59, y - 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255))
+
+            cv2.rectangle(image_in,(x - 50, y + 55),(x + 42, y + 72),(0,0,0),20)
+            cv2.putText(image_in, key, (x - 48, y + 58), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255))
+            cv2.putText(image_in, state, (x - 20, y + 70), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255))
+        else:
+            x = int(result[0])
+            y = int(result[1])
+            cv2.circle(image_in, (int(x), int(y)), 2, (0, 0, 0), 5)
+            cv2.rectangle(image_in,(x - 50, y - 55),(x + 32, y - 60),(0,0,0),30)
+            cv2.putText(image_in, '(' + str(x) + ', ' + str(y) + ')', (x - 59, y - 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255))
+
+            cv2.rectangle(image_in,(x - 50, y + 55),(x + 42, y + 60),(0,0,0),20)
+            cv2.putText(image_in, key, (x - 48, y + 58), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255))
+
+    return image_in
 
 
 def part_1():
@@ -165,10 +196,11 @@ def part_5b():
         img_out = mark_traffic_signs(scene, coords)
         cv2.imwrite("{}.png".format(label), img_out)
 
+
 if __name__ == '__main__':
-    part_1()
+    # part_1()
     # part_2()
     # part_3()
     # part_4()
-    # part_5a()
+    part_5a()
     # part_5b()

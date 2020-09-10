@@ -1,30 +1,45 @@
 
+import numpy as np
+import matplotlib.pyplot as plt
+from ps2 import *
 
-
-# gray_img = cv2.cvtColor(img_in, cv2.COLOR_BGR2GRAY)
-# dx, dy = np.gradient(gray_img)
+# n = np.sin(np.pi / 5)
 #
-# dx = dx.astype(np.float)
-# dy = dy.astype(np.float)
+# theta = 1.5707964
+# rho = 149.0
+# x = np.linspace(-5,5,100)
+# y = (-np.cos(theta)/np.sin(theta))*x + rho / np.sin(theta)
+# plt.plot(x, y, '-r')
 #
-# d_I = dx + dy
+# theta = 2.6179938
+# rho = -141.0
+# x = np.linspace(-5,5,100)
+# y = (-np.cos(theta)/np.sin(theta))*x + rho / np.sin(theta)
+# plt.plot(x, y, '-g')
 #
-# cv2.imwrite("dx.png", dx)
-# cv2.imwrite("dy.png", dy)
-# cv2.imwrite("d_I.png", d_I)
+# theta = 2.6354473
+# rho = -146.0
+# x = np.linspace(-5,5,100)
+# y = (-np.cos(theta)/np.sin(theta))*x + rho / np.sin(theta)
+# plt.plot(x, y, '-b')
 
-# cv2.imwrite("out/edges.png", edges)
-# edges = cv2.imread("out/edges.png", cv2.IMREAD_GRAYSCALE)
-map = {}
+# plt.title('Graph of y=2x+1')
+# plt.xlabel('x', color='#1C2833')
+# plt.ylabel('y', color='#1C2833')
+# plt.legend(loc='upper left')
+# plt.grid()
+# plt.show()
 
-map['list'] = 1
+my_data = np.array([
+    [1, 2],
+    [2, 3]
+])
 
-l = map.get('list')
+new_col = np.array([[0], [0]])
 
-print(l)
+zeros = np.zeros((5, 2))
 
-s = {0, 1, 2} # set([0, 1, 2])
+all_data = np.hstack((my_data, new_col))
 
-s.remove(2)
-s.remove(0)
-print(s.pop())
+# print(n)
+print('h')
