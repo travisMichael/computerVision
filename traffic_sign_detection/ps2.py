@@ -3,6 +3,7 @@ CS6476 Problem Set 2 imports. Only Numpy and cv2 are allowed.
 """
 import cv2
 
+# import matplotlib.pyplot as plt
 import numpy as np
 
 # The following sources were used throughout the development of this function
@@ -16,182 +17,6 @@ BLACK = np.array([0, 0, 0]).astype(np.float)
 WHITE = np.array([255, 255, 255]).astype(np.float)
 ORANGE = np.array([0, 128, 255]).astype(np.float)
 
-# YIELD_LEFT_CORNER_FEATURE_KERNEL = np.array([
-#     [-1, -1, -1, -1, -1, -1, 1, 1, 1],
-#     [-1, -1, -1, -1, -1, 1, 1, 1, 1],
-#     [-1, -1, -1, -1, 0, 1, 1, 1, 1],
-#     [-1, -1, -1, -1, 1, 0, 0, 0, 0],
-#     [-1, -1, -1, -1, 1, 0, 0, 0, 0],
-#     [-1, -1, -1, -1, 1, 0, 0, 0, 0],
-#     [-1, -1, -1, -1, 0, 1, 0, 0, 0],
-#     [-1, -1, -1, -1, 0, 1, 1, 1, 0],
-#     [-1, -1, -1, -1, 0, 0, 0, 1, 0],
-# ]).astype(np.float)
-
-YIELD_LEFT_CORNER_FEATURE_KERNEL = np.array([
-    [-1, -1, -1, -1, -1, -1, -1, -1, -1, 0],
-    [-1, -1, -1, -1, -1, -1, -1, -1, -1, 0],
-    [-1, -1, -1, -1, -1, -1, -1, -1, -1, 0],
-    [-1, -1, -1, -1, 1, 1, 1, 1, 1, 1],
-    [-1, -1, -1, -1, -1, 1, 1, 1, 1, 1],
-    [-1, -1, -1, -1, -1, -1, 1, 1, 1, 1],
-    [-1, -1, -1, -1, -1, -1, -1, 1, 1, 1],
-    [-1, -1, -1, -1, -1, -1, -1, -1, 1, 1],
-    [-1, -1, -1, -1, -1, -1, -1, -1, 0, 1],
-]).astype(np.float)
-
-
-# YIELD_RIGHT_CORNER_FEATURE_KERNEL = np.array([
-#     [1, 1, 0, -1, -1, -1, -1, -1, -1],
-#     [1, 1, 1, 1, -1, -1, -1, -1, -1],
-#     [0, 0, 1, 1, 0, -1, -1, -1, -1],
-#     [0, 0, 0, 0, 1, -1, -1, -1, -1],
-#     [0, 0, 0, 0, 1, -1, -1, -1, -1],
-#     [0, 0, 0, 0, 1, -1, -1, -1, -1],
-#     [0, 0, 0, 1, 0, -1, -1, -1, -1],
-#     [0, 1, 1, 1, 0, -1, -1, -1, -1],
-#     [1, 1, 1, 0, 0, -1, -1, -1, -1],
-# ]).astype(np.float)
-
-YIELD_RIGHT_CORNER_FEATURE_KERNEL = np.array([
-    [-1, -1, -1, -1, -1, -1, -1, -1, -1],
-    [-1, -1, -1, -1, -1, -1, -1, -1, -1],
-    [0, 0, 0, 0, 0, -1, -1, -1, -1],
-    [0, 0, 0, 0, 0, -1, -1, -1, -1],
-    [1, 1, 1, 1, 1, -1, -1, -1, -1],
-    [1, 1, 1, 1, 0, -1, -1, -1, -1],
-    [1, 1, 1, 0, 0, -1, -1, -1, -1],
-    [1, 1, 0, 0, 0, -1, -1, -1, -1],
-    [1, 0, 0, 0, 0, -1, -1, -1, -1],
-]).astype(np.float)
-
-# YIELD_BOTTOM_CORNER_FEATURE_KERNEL = np.array([
-#     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-#     [1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1],
-#     [1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1],
-#     [0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0],
-#     [0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0],
-#     [0, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0],
-#     [0, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0],
-#     [0, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0],
-#     [0, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0],
-#     [0, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0],
-# ]).astype(np.float)
-
-YIELD_BOTTOM_CORNER_FEATURE_KERNEL = np.array([
-    [-1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [-1, -1, 1, 1, 1, 1, 1, 1, 1, -1, -1],
-    [-1, -1, -1, 1, 1, 1, 1, 1, -1, -1, -1],
-    [-1, -1, -1, -1, 1, 1, 1, -1, 0, -1, -1],
-    [-1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1],
-    [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0],
-    [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0],
-    [0, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0],
-    [0, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0]
-]).astype(np.float)
-
-# YIELD_BOTTOM_CORNER_FEATURE_KERNEL = np.array([
-#     [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-#     [-1, 0, 1, 1, 1, 1, 1, 1, 1, 0, -1],
-#     [-1, -1, 0, 1, 1, 1, 1, 1, 0, -1, -1],
-#     [-1, -1, -1, 0, 1, 1, 1, 0, 0, -1, -1],
-#     [-1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1],
-#     [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0],
-#     [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0],
-#     [0, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0],
-#     [0, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0]
-# ]).astype(np.float)
-
-TOP_DIAMOND_CORNER_FEATURE_KERNEL = np.array([
-    [-1, -1, -1, -1, -1, -1, -1, -1, -1],
-    [-1, -1, -1, -1, -1, -1, -1, -1, -1],
-    [-1, -1, -1, -1, -1, -1, -1, -1, -1],
-    [-1, -1, -1, -1, -1, -1, -1, -1, -1],
-    [-1, -1, 0, 1, 1, 1, 0, -1, -1],
-    [0, 0, 1, 1, 0, 1, 1, 0, 0],
-    [1, 1, 0, 0, 0, 0, 0, 1, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 1],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-]).astype(np.float)
-
-RIGHT_DIAMOND_CORNER_FEATURE_KERNEL = np.array([
-    [0, 1, 1, -1, 0, 0, 0, 0, 0],
-    [0, 1, 1, 1, -1, 0, 0, 0, 0],
-    [0, 0, 0, 1, -1, 0, 0, 0, 0],
-    [0, 0, 0, 0, 1, 0, 0, 0, 0],
-    [0, 0, 0, 0, 1, 0, 0, 0, 0],
-    [0, 0, 0, 0, 1, 0, 0, 0, 0],
-    [0, 0, 0, 0, 1, 0, 0, 0, 0],
-    [0, 0, 0, 0, 1, 0, 0, 0, 0],
-    [0, 0, 0, 1, -1, 0, 0, 0, 0],
-    [0, 1, 1, 1, -1, 0, 0, 0, 0],
-    [0, 1, 1, -1, -1, 0, 0, 0, 0],
-
-]).astype(np.float)
-
-# RIGHT_DIAMOND_CORNER_FEATURE_KERNEL = np.array([
-#     [0, 1, 1, -1, 0, -1, -1, -1, -1],
-#     [0, 1, 1, 1, -1, -1, -1, -1, -1],
-#     [0, 0, 0, 1, -1, -1, -1, -1, -1],
-#     [0, 0, 0, 0, 1, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 1, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 1, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 1, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 1, -1, -1, -1, -1],
-#     [0, 0, 0, 1, -1, -1, -1, -1, -1],
-#     [0, 1, 1, 1, -1, -1, -1, -1, -1],
-#     [0, 1, 1, -1, -1, -1, -1, -1, -1],
-#
-# ]).astype(np.float)
-
-# BOTTOM_DIAMOND_CORNER_FEATURE_KERNEL = np.array([
-#     [0, 0, 0, 0, 0, 0, 0, 0, 0],
-#     [1, 0, 0, 0, 0, 0, 0, 0, 1],
-#     [1, 0, 0, 0, 0, 0, 0, 0, 1],
-#     [0, 1, 1, 1, 1, 1, 1, 1, 0],
-#     [0, 1, 1, 1, 1, 1, 1, 1, 0],
-#     [-1, 0, 0, 0, 0, 0, 0, 0, -1],
-#     [0, 0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 0, 0],
-# ]).astype(np.float)
-
-BOTTOM_DIAMOND_CORNER_FEATURE_KERNEL = np.array([
-    [1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [-1, 1, 1, 1, 1, 1, 1, 1, -1],
-    [-1, -1, 0, 1, 1, 1, 0, -1, -1],
-    [-1, -1, -1, 0, 0, 0, -1, -1, -1],
-    [-1, -1, 0, 0, 0, 0, -1, -1, -1],
-    [0, 0, 0, 0, 0, 0, 0, 0, -1],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0]
-]).astype(np.float)
-
-# LEFT_DIAMOND_CORNER_FEATURE_KERNEL = np.array([
-#     [0, 0, 0, 0, 0, 1, 1, 0, 0],
-#     [0, 0, 0, 0, 0, 1, 0, 0, 0],
-#     [0, 0, 0, 0, 1, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 1, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 1, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 1, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 1, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 1, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 1, 1, 0, 0],
-# ]).astype(np.float)
-
-LEFT_DIAMOND_CORNER_FEATURE_KERNEL = np.array([
-    [-1, -1, -1, -1, -1, 1, 1, 1, 0],
-    [-1, -1, -1, -1, -1, 1, 1, 0, 0],
-    [-1, -1, -1, -1, 0, 1, 0, 0, 0],
-    [-1, -1, -1, -1, 1, 0, 0, 0, 0],
-    [-1, -1, -1, -1, 1, 0, 0, 0, 0],
-    [-1, -1, -1, -1, 1, 0, 0, 0, 0],
-    [-1, -1, -1, -1, 0, 1, 0, 0, 0],
-    [-1, -1, -1, -1, -1, 1, 0, 0, 0],
-    [-1, -1, -1, -1, -1, 1, 1, 0, 0],
-]).astype(np.float)
 
 HAS_TOP_FEATURE_KERNEL = np.array([
     [0, 0, 0, 0, 1, 0, 0, 0, 0],
@@ -229,30 +54,6 @@ HAS_BOTTOM_FEATURE_KERNEL = np.array([
     [0, 0, 0, 0, 1, 0, 0, 0, 0],
     [0, 0, 0, 0, 1, 0, 0, 0, 0],
 ]).astype(np.float)
-
-# HAS_TOP_FEATURE_KERNEL = np.array([
-#     [0, 0, 0, 0, 1, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 1, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 1, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 1, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 0, 0],
-# ]).astype(np.float)
-#
-#
-# HAS_BOTTOM_FEATURE_KERNEL = np.array([
-#     [0, 0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 0, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 1, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 1, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 1, 0, 0, 0, 0],
-# ]).astype(np.float)
 
 HAS_LEFT_FEATURE_KERNEL = np.array([
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -424,6 +225,15 @@ def calculate_cartesian_equation(point_1, point_2):
     return m, b
 
 
+def calculate_cartesian_equation_new(point_1, point_2):
+    if point_2[0] - point_1[0] == 0:
+        m = 0
+    else:
+        m = float(point_2[1] - point_1[1]) / float(point_2[0] - point_1[0])
+    b = (point_2[1] - (m * point_2[0]))
+    return m, b
+
+
 # this function will create a new point or merge points depending on how close the points are
 def group_points(point, points, threshold=20):
     has_merged = False
@@ -579,6 +389,71 @@ def traffic_light_detection(img_in, radii_range):
     return (stop_light_circles[1][0], stop_light_circles[1][1]), state
 
 
+# returns the line equations of similar lines
+# excludes near vertical lines
+def group_lines(line, lines, threshold_m = 0.1, threshold_b = 5):
+    x1,y1,x2,y2 = line[0]
+    if is_close(x1, x2):
+        return lines
+    if is_close(y1, y2):
+        print("y is close")
+
+    m_primary, b_primary = calculate_cartesian_equation_new((y1, x1), (y2, x2))
+    m_primary, b_primary = calculate_cartesian_equation_new((x1, y1), (x2, y2))
+
+    has_merged = False
+    for l in lines:
+        m = l.get('m')
+        b = l.get('b')
+
+        # if is_close(m, m_primary, threshold_m) and is_close(b, b_primary, threshold_b) and False:
+        if is_close(m, m_primary, .95):
+            count = l.get('count')
+            new_m = (m * count + m_primary) / (count + 1)
+            new_b = (b * count + b_primary) / (count + 1)
+            l['count'] = count + 1
+            l['m'] = new_m
+            l['b'] = new_b
+            has_merged = True
+
+    if not has_merged:
+        lines.append({'m': m_primary, 'b': b_primary, 'count': 1})
+
+    return lines
+
+
+def plot_lines(lines):
+
+    for i in range(len(lines)):
+        line = lines[i]
+        m = line.get('m')
+        b = line.get('b')
+        x = np.linspace(0,600,600)
+        y = m*x + b
+        plt.plot(x, y)
+
+    plt.title('Graph of y=2x+1')
+    plt.xlabel('x', color='#1C2833')
+    plt.ylabel('y', color='#1C2833')
+    plt.legend(loc='upper left')
+    plt.grid()
+    plt.show()
+
+    print()
+
+
+def filter_lines_by_slop(lines, low, high):
+    result = []
+    for line in lines:
+        x1,y1,x2,y2 = line[0]
+        m, _ = calculate_cartesian_equation_new((x1, y1), (x2, y2))
+
+        if low <= m <= high:
+            result.append(line)
+    return result
+
+
+
 def yield_sign_detection(img_in):
     """Finds the centroid coordinates of a yield sign in the provided
     image.
@@ -599,6 +474,7 @@ def yield_sign_detection(img_in):
     merged = merge_colors_in_image(merged, red_variant_3, RED, threshold=40)
     merged = merge_colors_in_image(merged, red_variant_4, RED, threshold=40)
     filtered_img = filter_pixels_by_value(merged, RED, threshold=50).astype(np.uint8)
+    cv2.imwrite('out/filtered.png',filtered_img)
 
     binary_filtered_img = transform_to_binary_image(filtered_img)
 
@@ -608,92 +484,109 @@ def yield_sign_detection(img_in):
     enclosed = fill_pixels_if_enclosed(enclosed)
 
     edges = cv2.Canny(enclosed,90,210)
+    cv2.imwrite('out/edges.png',edges)
     binary_edges = np.zeros_like(edges)
     binary_edges[enclosed == 255] = 1
     # should be two results here
-    left_corner_feature_result = cv2.filter2D(binary_edges, -1, YIELD_LEFT_CORNER_FEATURE_KERNEL)
-    right_corner_feature_result = cv2.filter2D(binary_edges, -1, YIELD_RIGHT_CORNER_FEATURE_KERNEL)
-    bottom_corner_feature_result = cv2.filter2D(binary_edges, -1, YIELD_BOTTOM_CORNER_FEATURE_KERNEL)
 
-    left_max = np.max(left_corner_feature_result)
-    right_max = np.max(right_corner_feature_result)
-    bottom_max = np.max(bottom_corner_feature_result)
+    ln_img = np.zeros_like(img_in)
+    lines = cv2.HoughLinesP(edges,1,np.pi/180,20, minLineLength=8, maxLineGap=0)
 
-    if left_max < 9:
-        raise RuntimeError('Left corner feature not found')
+    if lines is None:
+        raise RuntimeError("No lines detected for construction sign detection")
 
-    if right_max < 9:
-        raise RuntimeError('Right corner feature not found')
+    # i = 0
+    # for line in lines:
+    #     x1,y1,x2,y2 = line[0]
+    #     cv2.line(ln_img,(x1,y1),(x2,y2),(0,255,255),1)
+    #     cv2.imwrite('out/houghlines' + str(i) + '.png',ln_img)
+    #     i += 1
+    #
+    # cv2.imwrite('out/houghlines5.png',ln_img)
 
-    if bottom_max < 9:
-        raise RuntimeError('Bottom corner feature not found')
+    right_side = filter_lines_by_slop(lines, 1.3, 2.0)
+    left_side = filter_lines_by_slop(lines, -2.0, -1.3)
+    top_lines = filter_lines_by_slop(lines, -0.01, 0.01)
 
-    left_corners = np.where(left_corner_feature_result >= left_max)
-    right_corners = np.where(right_corner_feature_result >= right_max)
-    bottom_corners = np.where(bottom_corner_feature_result >= bottom_max)
+    # grouped_lines = []
+    # for line in lines:
+    #     grouped_lines = group_lines(line, grouped_lines)
+    #
+    # plot_lines(grouped_lines)
 
-    left_corner_points = []
-    for i in range(len(left_corners[0])):
-        point = left_corners[1][i], left_corners[0][i]
-        inward_point_value_1 = enclosed[point[1] + 2, point[0] + 2]
-        inward_point_value_2 = enclosed[point[1] + 50, point[0] + 50]
-        if inward_point_value_1 == 255 and inward_point_value_2 == 0:
-            left_corner_points = group_points(point, left_corner_points, threshold=6)
-        # inward_point_value = img_in[point[1] + 2, point[0] + 2]
-        # is_red_error = rmse(inward_point_value, RED)
-        # inward_point_value = img_in[point[1] + 50, point[0] + 50]
-        # is_white_error = rmse(inward_point_value, WHITE)
-        # if is_red_error < 20 and is_white_error < 20:
-        #     left_corner_points = group_points(point, left_corner_points, threshold=6)
+    grouped_lines = []
+    for line in right_side:
+        grouped_lines = group_lines(line, grouped_lines)
+    for line in left_side:
+        grouped_lines = group_lines(line, grouped_lines)
+    for line in top_lines:
+        grouped_lines = group_lines(line, grouped_lines)
+    # plot_lines(grouped_lines)
 
-    right_corner_points = []
-    for i in range(len(right_corners[0])):
-        point = right_corners[1][i], right_corners[0][i]
-        inward_point_value_1 = enclosed[point[1] + 2, point[0] - 2]
-        inward_point_value_2 = enclosed[point[1] + 50, point[0] - 50]
-        if inward_point_value_1 == 255 and inward_point_value_2 == 0:
-            right_corner_points = group_points(point, right_corner_points, threshold=6)
-        # inward_point_value = img_in[point[1] + 2, point[0] - 2]
-        # is_red_error = rmse(inward_point_value, RED)
-        # inward_point_value = img_in[point[1] + 30, point[0] - 30]
-        # is_white_error = rmse(inward_point_value, WHITE)
-        # if is_red_error < 20 and is_white_error < 20:
-        #     right_corner_points = group_points(point, right_corner_points, threshold=6)
+    right_grouped_lines = []
+    for line in right_side:
+        right_grouped_lines = group_lines(line, right_grouped_lines)
+    left_grouped_lines = []
+    for line in left_side:
+        left_grouped_lines = group_lines(line, left_grouped_lines)
+    top_group_lines = []
+    # for line in top_lines:
+    #     top_group_lines = group_lines(line, top_group_lines)
+    # plot_lines(grouped_lines) 240, 357
 
-    bottom_corner_points = []
-    for i in range(len(bottom_corners[0])):
-        point = bottom_corners[1][i], bottom_corners[0][i]
-        inward_point_value_1 = enclosed[point[1] - 2, point[0]]
-        inward_point_value_2 = enclosed[point[1] - 50, point[0]]
-        if inward_point_value_1 == 255 and inward_point_value_2 == 0:
-            bottom_corner_points = group_points(point, bottom_corner_points, threshold=6)
-        # inward_point_value = img_in[point[1] - 2, point[0]]
-        # is_red_error = rmse(inward_point_value, RED)
-        # inward_point_value = img_in[point[1] - 30, point[0]]
-        # is_white_error = rmse(inward_point_value, WHITE)
-        # if is_red_error < 20 and is_white_error < 20:
-        #     bottom_corner_points = group_points(point, bottom_corner_points, threshold=6)
+    if len(right_grouped_lines) != 1:
+        raise RuntimeError("right group")
+    if len(left_grouped_lines) != 1:
+        raise RuntimeError("left group")
 
-    if len(left_corner_points) != 1:
-        raise RuntimeError('Exactly two left corners were not found')
+    print()
 
-    if len(right_corner_points) != 1:
-        raise RuntimeError('Exactly two right corners were not found')
+    right_line = right_grouped_lines[0]
+    left_line = left_grouped_lines[0]
 
-    if len(bottom_corner_points) != 1:
-        raise RuntimeError('Exactly two bottom corners were not found')
+    intersecting_point = calculate_intersection_point((right_line.get('m'),right_line.get('b')), (left_line.get('m'),left_line.get('b')))
 
-    left_corner = (left_corner_points[0].get('x'), left_corner_points[0].get('y'))
-    right_corner = (right_corner_points[0].get('x'), right_corner_points[0].get('y'))
-    bottom_corner = (bottom_corner_points[0].get('x'), bottom_corner_points[0].get('y'))
+    nearest_straight_line = None
+    distance = 10000
+    for line in top_lines:
+        _, y_l, _, _ = line[0]
+        if y_l + 35 < intersecting_point[1] and intersecting_point[1] - y_l < distance:
+            distance = intersecting_point[1] - y_l
+            nearest_straight_line = line
 
-    left_bottom_mid = ((left_corner[0] + bottom_corner[0]) / 2, (left_corner[1] + bottom_corner[1]) / 2)
-    right_bottom_mid = ((right_corner[0] + bottom_corner[0]) / 2, (right_corner[1] + bottom_corner[1]) / 2)
+    print()
 
-    mid_point_left_to_bottom_line = calculate_cartesian_equation(left_corner, right_bottom_mid)
-    mid_point_right_to_bottom_line = calculate_cartesian_equation(right_corner, left_bottom_mid)
+    # for line in right_side:
+    #     grouped_lines = group_lines(line, grouped_lines)
+    # for line in left_side:
+    #     grouped_lines = group_lines(line, grouped_lines)
 
-    x, y = calculate_intersection_point(mid_point_left_to_bottom_line, mid_point_right_to_bottom_line)
+    top_grouped = []
+    top_grouped = group_lines(nearest_straight_line, top_grouped)
+
+    grouped_lines = [left_grouped_lines[0], right_grouped_lines[0], top_grouped[0]]
+
+    # grouped_lines = group_lines(nearest_straight_line, [])
+
+    # might have to filter lines before this method
+    # hint, we only want lines with a certain slope
+    intersecting_points = get_points_of_intersection_from_equations(grouped_lines)
+
+    points = []
+    for point in intersecting_points:
+        points = group_points((point[0], point[1]), points, threshold=20)
+
+    if len(points) != 3:
+        raise RuntimeError("Yield sign should have 3 intersecting points")
+
+    x = 0.0
+    y = 0.0
+    for point in points:
+        x += point.get('x')
+        y += point.get('y')
+
+    x = x / len(points)
+    y = y / len(points)
 
     return x, y
 
@@ -800,44 +693,45 @@ def warning_sign_detection(img_in):
     binary_filtered_img[enclosed == 255] = 1
 
     edges = cv2.Canny(enclosed,90,210)
-    binary_edges = np.zeros_like(edges)
-    binary_edges[edges == 255] = 1
+    # binary_edges = np.zeros_like(edges)
+    # binary_edges[edges == 255] = 1
 
-    # TOP_DIAMOND_CORNER_FEATURE_KERNEL
-    top_corner_feature_result = cv2.filter2D(binary_edges, -1, TOP_DIAMOND_CORNER_FEATURE_KERNEL)
-    right_corner_feature_result = cv2.filter2D(binary_edges, -1, RIGHT_DIAMOND_CORNER_FEATURE_KERNEL, borderType=cv2.BORDER_REPLICATE)
-    bottom_corner_feature_result = cv2.filter2D(binary_filtered_img, -1, BOTTOM_DIAMOND_CORNER_FEATURE_KERNEL)
-    left_corner_feature_result = cv2.filter2D(binary_edges, -1, LEFT_DIAMOND_CORNER_FEATURE_KERNEL)
+    ln_img = np.zeros_like(img_in)
 
-    top_max = np.max(top_corner_feature_result)
-    right_max = np.max(right_corner_feature_result)
-    bottom_max = np.max(bottom_corner_feature_result)
-    left_max = np.max(left_corner_feature_result)
+    lines = cv2.HoughLinesP(edges,1,np.pi/180,40)
 
-    if top_max < 7:
-        raise RuntimeError("top corner less than 7 for construction feature detection")
+    if lines is None:
+        raise RuntimeError("No lines detected for construction sign detection")
 
-    if right_max < 7:
-        raise RuntimeError("right corner less than 7 for construction feature detection")
+    # i = 0
+    # for line in lines:
+    #     x1,y1,x2,y2 = line[0]
+    #     cv2.line(ln_img,(x1,y1),(x2,y2),(0,255,0),2)
+    #     cv2.imwrite('houghlines' + str(i) + '.png',ln_img)
+    #     i += 1
+    #
+    # cv2.imwrite('houghlines5.png',edges)
 
-    if bottom_max < 7:
-        raise RuntimeError("bottom corner less than 7 for construction feature detection")
+    # might have to filter lines before this method
+    # hint, we only want lines with a certain slope
+    intersecting_points = get_points_of_intersection(lines)
 
-    if left_max < 7:
-        raise RuntimeError("left corner less than 7 for construction feature detection")
+    points = []
+    for point in intersecting_points:
+        points = group_points((point[0], point[1]), points, threshold=20)
 
-    top_corners = np.where(top_corner_feature_result == top_max)
-    right_corners = np.where(right_corner_feature_result == right_max)
-    bottom_corners = np.where(bottom_corner_feature_result == bottom_max)
-    left_corners = np.where(left_corner_feature_result == left_max)
+    if len(points) != 4:
+        raise RuntimeError("Warning sign should have 4 intersecting points")
 
-    # cv2.circle(img_in, (int(top_corners[1][0]), int(top_corners[0][0])), 3, (0, 0, 0), 10)
-    # cv2.circle(img_in, (int(right_corners[1][0]), int(right_corners[0][0])), 3, (0, 0, 0), 10)
-    # cv2.circle(img_in, (int(bottom_corners[1][0]), int(bottom_corners[0][0])), 3, (0, 0, 0), 10)
-    # cv2.circle(img_in, (int(left_corners[1][0]), int(left_corners[0][0])), 3, (0, 0, 0), 10)
+    x = 0.0
+    y = 0.0
+    for point in points:
+        x += point.get('x')
+        y += point.get('y')
 
-    y = (top_corners[0][0] + right_corners[0][0] + bottom_corners[0][0] + left_corners[0][0]) / 4
-    x = (top_corners[1][0] + right_corners[1][0] + bottom_corners[1][0] + left_corners[1][0]) / 4
+    x = x / len(points)
+    y = y / len(points)
+
     return x, y
 
 
@@ -857,6 +751,8 @@ def construction_sign_detection(img_in):
 
     filtered_img = filter_pixels_by_value(merged, ORANGE, threshold=40).astype(np.uint8)
 
+    cv2.imwrite('out/filtered.png', filtered_img)
+
     binary_filtered_img = transform_to_binary_image(filtered_img)
     enclosed = fill_pixels_if_enclosed(binary_filtered_img)
     enclosed = fill_pixels_if_enclosed(enclosed)
@@ -864,45 +760,91 @@ def construction_sign_detection(img_in):
     binary_filtered_img[enclosed == 255] = 1
 
     edges = cv2.Canny(enclosed,90,210)
+    cv2.imwrite('out/edges.png', edges)
     binary_edges = np.zeros_like(edges)
     binary_edges[edges == 255] = 1
 
-    # TOP_DIAMOND_CORNER_FEATURE_KERNEL
-    top_corner_feature_result = cv2.filter2D(binary_edges, -1, TOP_DIAMOND_CORNER_FEATURE_KERNEL)
-    right_corner_feature_result = cv2.filter2D(binary_edges, -1, RIGHT_DIAMOND_CORNER_FEATURE_KERNEL)
-    bottom_corner_feature_result = cv2.filter2D(binary_filtered_img, -1, BOTTOM_DIAMOND_CORNER_FEATURE_KERNEL)
-    left_corner_feature_result = cv2.filter2D(binary_edges, -1, LEFT_DIAMOND_CORNER_FEATURE_KERNEL)
+    ln_img = np.zeros_like(img_in)
 
-    top_max = np.max(top_corner_feature_result)
-    right_max = np.max(right_corner_feature_result)
-    bottom_max = np.max(bottom_corner_feature_result)
-    left_max = np.max(left_corner_feature_result)
+    lines = cv2.HoughLinesP(edges,1,np.pi/180,40)
 
-    if top_max < 7:
-        raise RuntimeError("top corner less than 7 for construction feature detection")
+    if lines is None:
+        raise RuntimeError("No lines detected for construction sign detection")
 
-    if right_max < 7:
-        raise RuntimeError("right corner less than 7 for construction feature detection")
+    # i = 0
+    # for line in lines:
+    #     x1,y1,x2,y2 = line[0]
+    #     cv2.line(ln_img,(x1,y1),(x2,y2),(0,255,0),2)
+    #     cv2.imwrite('houghlines' + str(i) + '.png',ln_img)
+    #     i += 1
+    #
+    # cv2.imwrite('houghlines5.png',edges)
 
-    if bottom_max < 7:
-        raise RuntimeError("bottom corner less than 7 for construction feature detection")
+    # might have to filter lines before this method
+    # hint, we only want lines with a certain slope
+    intersecting_points = get_points_of_intersection(lines)
 
-    if left_max < 7:
-        raise RuntimeError("left corner less than 7 for construction feature detection")
+    points = []
+    for point in intersecting_points:
+        points = group_points((point[0], point[1]), points, threshold=20)
 
-    top_corners = np.where(top_corner_feature_result == top_max)
-    right_corners = np.where(right_corner_feature_result == right_max)
-    bottom_corners = np.where(bottom_corner_feature_result == bottom_max)
-    left_corners = np.where(left_corner_feature_result == left_max)
+    if len(points) != 4:
+        raise RuntimeError("Construction sign should have 4 intersecting points")
 
-    # cv2.circle(img_in, (int(top_corners[1][0]), int(top_corners[0][0])), 3, (0, 0, 0), 10)
-    # cv2.circle(img_in, (int(right_corners[1][0]), int(right_corners[0][0])), 3, (0, 0, 0), 10)
-    # cv2.circle(img_in, (int(bottom_corners[1][0]), int(bottom_corners[0][0])), 3, (0, 0, 0), 10)
-    # cv2.circle(img_in, (int(left_corners[1][0]), int(left_corners[0][0])), 3, (0, 0, 0), 10)
+    x = 0.0
+    y = 0.0
+    for point in points:
+        x += point.get('x')
+        y += point.get('y')
 
-    y = (top_corners[0][0] + right_corners[0][0] + bottom_corners[0][0] + left_corners[0][0]) / 4
-    x = (top_corners[1][0] + right_corners[1][0] + bottom_corners[1][0] + left_corners[1][0]) / 4
+    x = x / len(points)
+    y = y / len(points)
+
     return x, y
+
+
+def is_close(value_1, value_2, threshold=0.1):
+    diff = abs(value_1 - value_2)
+    if diff < threshold:
+        return True
+    return False
+
+
+def get_points_of_intersection(lines):
+    intersecting_points = []
+    for line in lines:
+        x1,y1,x2,y2 = line[0]
+        for l in lines:
+            x_1,y_1,x_2,y_2 = l[0]
+            if x1 == x_1 and y1 == y_2 and x2 == x_2 and y2 == y_2:
+                continue
+            if is_close(y1, y2) or is_close(y_1, y_2):
+                continue
+            m1, b1 = calculate_cartesian_equation_new((x1, y1), (x2, y2))
+            m2, b2 = calculate_cartesian_equation_new((x_1, y_1), (x_2, y_2))
+            if is_close(m1, m2):
+                continue
+            point = calculate_intersection_point((m1, b1), (m2, b2))
+            intersecting_points.append(point)
+
+    return intersecting_points
+
+
+def get_points_of_intersection_from_equations(line_equations):
+    intersecting_points = []
+    for e1 in line_equations:
+        m1 = e1.get('m')
+        b1 = e1.get('b')
+        for e2 in line_equations:
+            m2 = e2.get('m')
+            b2 = e2.get('b')
+            if m1 == m2 and b1 == b2:
+                continue
+
+            point = calculate_intersection_point((m1, b1), (m2, b2))
+            intersecting_points.append(point)
+
+    return intersecting_points
 
 
 def do_not_enter_sign_detection(img_in):
@@ -987,7 +929,9 @@ def do_not_enter_sign_detection(img_in):
 def safe_traffic_light_detection(img_in):
 
     try:
-        result = traffic_light_detection(img_in, [10, 30])
+        # blur = cv2.GaussianBlur(img_in,(5,5),0)
+        median = cv2.medianBlur(img_in,5)
+        result = traffic_light_detection(median, [10, 30])
         return result
     except RuntimeError:
         print('error in safe traffic light detection')
@@ -999,7 +943,9 @@ def safe_yield_sign_detection(img_in):
 
     # return yield_sign_detection(img_in)
     try:
-        result = yield_sign_detection(img_in)
+        # blur = cv2.GaussianBlur(img_in,(5,5),0)
+        median = cv2.medianBlur(img_in,5)
+        result = yield_sign_detection(median)
         return result
     except RuntimeError:
         print('error in yield sign detection')
@@ -1014,7 +960,7 @@ def safe_warning_sign_detection(img_in):
         result = warning_sign_detection(img_in)
         return result
     except RuntimeError:
-        print('error in yield sign detection')
+        print('error in warning sign detection')
 
     return None
 
@@ -1023,10 +969,11 @@ def safe_construction_sign_detection(img_in):
 
     # return construction_sign_detection(img_in)
     try:
-        result = construction_sign_detection(img_in)
+        blur = cv2.GaussianBlur(img_in,(5,5),0)
+        result = construction_sign_detection(blur)
         return result
     except RuntimeError:
-        print('error in yield sign detection')
+        print('error in construction sign detection')
 
     return None
 
@@ -1038,7 +985,7 @@ def safe_do_not_enter_sign_detection(img_in):
         result = do_not_enter_sign_detection(img_in)
         return result
     except RuntimeError:
-        print('error in yield sign detection')
+        print('error in dne sign detection')
 
     return None
 
@@ -1047,7 +994,8 @@ def safe_stop_sign_detection(img_in):
 
     # return
     try:
-        result = stop_sign_detection(img_in)
+        median = cv2.medianBlur(img_in,5)
+        result = stop_sign_detection(median)
         return result
     except RuntimeError:
         print('error in stop sign detection')
@@ -1146,7 +1094,7 @@ def traffic_sign_detection_noisy(img_in):
     median = cv2.medianBlur(img_in,5)
     # cv2.imwrite('out/blur.png', blur)
     # cv2.imwrite('out/median.png', median)
-    result = traffic_sign_detection(median)
+    result = traffic_sign_detection(img_in)
     return result
 
 
