@@ -18,7 +18,7 @@ WHITE = np.array([255, 255, 255]).astype(np.float)
 ORANGE = np.array([0, 128, 255]).astype(np.float)
 
 
-HAS_TOP_FEATURE_KERNEL = np.array([
+HAS_TOP_KERNEL = np.array([
     [0, 0, 0, 0, 1, 0, 0, 0, 0],
     [0, 0, 0, 0, 1, 0, 0, 0, 0],
     [0, 0, 0, 0, 1, 0, 0, 0, 0],
@@ -37,7 +37,7 @@ HAS_TOP_FEATURE_KERNEL = np.array([
 ]).astype(np.float)
 
 
-HAS_BOTTOM_FEATURE_KERNEL = np.array([
+HAS_BOTTOM_KERNEL = np.array([
     [0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -55,7 +55,7 @@ HAS_BOTTOM_FEATURE_KERNEL = np.array([
     [0, 0, 0, 0, 1, 0, 0, 0, 0],
 ]).astype(np.float)
 
-HAS_LEFT_FEATURE_KERNEL = np.array([
+HAS_LEFT_KERNEL = np.array([
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -63,7 +63,7 @@ HAS_LEFT_FEATURE_KERNEL = np.array([
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 ]).astype(np.float)
 
-HAS_RIGHT_FEATURE_KERNEL = np.array([
+HAS_RIGHT_KERNEL = np.array([
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
@@ -83,14 +83,14 @@ def fill_pixels_if_enclosed(binary_image, fill_left_to_right=True, fill_top_to_b
     result = np.copy(img_copy).astype(np.uint8)
 
     if fill_top_to_bottom:
-        has_top_feature = cv2.filter2D(img_copy, -1, HAS_TOP_FEATURE_KERNEL)
-        has_bottom_feature = cv2.filter2D(img_copy, -1, HAS_BOTTOM_FEATURE_KERNEL)
+        has_top_feature = cv2.filter2D(img_copy, -1, HAS_TOP_KERNEL)
+        has_bottom_feature = cv2.filter2D(img_copy, -1, HAS_BOTTOM_KERNEL)
         has_top_and_bottom = np.logical_and(has_top_feature, has_bottom_feature)
         result = np.logical_or(result, has_top_and_bottom).astype(np.uint8) * 255
 
     if fill_left_to_right:
-        has_left_feature = cv2.filter2D(img_copy, -1, HAS_LEFT_FEATURE_KERNEL)
-        has_right_feature = cv2.filter2D(img_copy, -1, HAS_RIGHT_FEATURE_KERNEL)
+        has_left_feature = cv2.filter2D(img_copy, -1, HAS_LEFT_KERNEL)
+        has_right_feature = cv2.filter2D(img_copy, -1, HAS_RIGHT_KERNEL)
         has_left_and_right = np.logical_and(has_left_feature, has_right_feature)
         result = np.logical_or(result, has_left_and_right).astype(np.uint8) * 255
     return result[:, 0:-10]
@@ -422,24 +422,24 @@ def group_lines(line, lines, threshold_m = 0.1, threshold_b = 5):
     return lines
 
 
-def plot_lines(lines):
-
-    for i in range(len(lines)):
-        line = lines[i]
-        m = line.get('m')
-        b = line.get('b')
-        x = np.linspace(0,600,600)
-        y = m*x + b
-        plt.plot(x, y)
-
-    plt.title('Graph of y=2x+1')
-    plt.xlabel('x', color='#1C2833')
-    plt.ylabel('y', color='#1C2833')
-    plt.legend(loc='upper left')
-    plt.grid()
-    plt.show()
-
-    print()
+# def plot_lines(lines):
+#
+#     for i in range(len(lines)):
+#         line = lines[i]
+#         m = line.get('m')
+#         b = line.get('b')
+#         x = np.linspace(0,600,600)
+#         y = m*x + b
+#         plt.plot(x, y)
+#
+#     plt.title('Graph of y=2x+1')
+#     plt.xlabel('x', color='#1C2833')
+#     plt.ylabel('y', color='#1C2833')
+#     plt.legend(loc='upper left')
+#     plt.grid()
+#     plt.show()
+#
+#     print()
 
 
 def filter_lines_by_slop(lines, low, high):
@@ -451,7 +451,6 @@ def filter_lines_by_slop(lines, low, high):
         if low <= m <= high:
             result.append(line)
     return result
-
 
 
 def yield_sign_detection(img_in):
@@ -682,23 +681,26 @@ def warning_sign_detection(img_in):
     h, w, _ = img_in.shape
     filtered_img = filter_pixels_by_value(img_in, YELLOW).astype(np.uint8)
 
+    cv2.imwrite('out/filtered.png', filtered_img)
     binary_filtered_img = transform_to_binary_image(filtered_img)
 
-    enclosed = fill_pixels_if_enclosed(binary_filtered_img, fill_top_to_bottom=False)
-    enclosed = fill_pixels_if_enclosed(enclosed, fill_top_to_bottom=False)
+    # enclosed = fill_pixels_if_enclosed(binary_filtered_img, fill_top_to_bottom=False)
+    # enclosed = fill_pixels_if_enclosed(enclosed, fill_top_to_bottom=False)
+    enclosed = fill_pixels_if_enclosed(binary_filtered_img)
+    enclosed = fill_pixels_if_enclosed(enclosed)
 
-    if h > 292 and w > 125 and rmse(img_in[292, 125, :], np.array([15, 225, 240])) < 5:
-        enclosed = fill_pixels_if_enclosed(binary_filtered_img)
-        enclosed = fill_pixels_if_enclosed(enclosed)
+    # if h > 292 and w > 125 and rmse(img_in[292, 125, :], np.array([15, 225, 240])) < 5:
+    #     enclosed = fill_pixels_if_enclosed(binary_filtered_img)
+    #     enclosed = fill_pixels_if_enclosed(enclosed)
     binary_filtered_img[enclosed == 255] = 1
-
+    cv2.imwrite('out/enclosed.png', enclosed)
     edges = cv2.Canny(enclosed,90,210)
     # binary_edges = np.zeros_like(edges)
     # binary_edges[edges == 255] = 1
 
     ln_img = np.zeros_like(img_in)
 
-    lines = cv2.HoughLinesP(edges,1,np.pi/180,40)
+    lines = cv2.HoughLinesP(edges,1,np.pi/180,30)
 
     if lines is None:
         raise RuntimeError("No lines detected for construction sign detection")
@@ -746,9 +748,10 @@ def construction_sign_detection(img_in):
         (x,y) tuple of the coordinates of the center of the sign.
     """
     orange_variant_1 = np.array([35, 75, 228]).astype(np.float)
+    orange_variant_2 = np.array([18, 34, 113]).astype(np.float)
 
     merged = merge_colors_in_image(img_in, orange_variant_1, ORANGE, threshold=30)
-
+    merged = merge_colors_in_image(merged, orange_variant_2, ORANGE, threshold=30)
     filtered_img = filter_pixels_by_value(merged, ORANGE, threshold=40).astype(np.uint8)
 
     cv2.imwrite('out/filtered.png', filtered_img)
