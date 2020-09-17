@@ -3,7 +3,6 @@ CS6476 Problem Set 2 imports. Only Numpy and cv2 are allowed.
 """
 import cv2
 
-# import matplotlib.pyplot as plt
 import numpy as np
 
 # The following sources were used throughout the development of this function
@@ -106,14 +105,6 @@ def draw_circles(circles, img_in):
 
 def rmse(actual, target):
     return np.sqrt(((actual - target) ** 2).mean())
-
-
-def test(edges):
-    hough_result = np.copy(edges)
-    for i in range(100):
-        circles = cv2.HoughCircles(hough_result,cv2.HOUGH_GRADIENT,1,20,param1=250,param2=20,minRadius=10,maxRadius=40)
-        if circles is None or len(circles[0]) < 3:
-            print("dang")
 
 
 # find the return the circles inside the stoplight. circles should be in order, red, yellow, green
@@ -271,7 +262,7 @@ def get_circles(image, circle_list=None):
     # cv2.imwrite("out/edges.png", edges)
     hough_result = np.copy(edges)
 
-    circles = cv2.HoughCircles(hough_result,cv2.HOUGH_GRADIENT,1,20,param1=250,param2=20,minRadius=5,maxRadius=40)
+    circles = cv2.HoughCircles(hough_result,cv2.HOUGH_GRADIENT,1,20,param1=250,param2=20,minRadius=2,maxRadius=35)
 
     if circles is not None:
         for circle in circles[0]:
@@ -347,6 +338,7 @@ def traffic_light_detection(img_in, radii_range):
     """
     circle_list = []
     red_img = filter_pixels_by_value(img_in, RED).astype(np.uint8)
+    cv2.imwrite("out/filtered.png", red_img)
     yellow_img = filter_pixels_by_value(img_in, YELLOW).astype(np.uint8)
     green_img = filter_pixels_by_value(img_in, GREEN).astype(np.uint8)
 
@@ -422,26 +414,6 @@ def group_lines(line, lines, threshold_m = 0.1, threshold_b = 5):
     return lines
 
 
-# def plot_lines(lines):
-#
-#     for i in range(len(lines)):
-#         line = lines[i]
-#         m = line.get('m')
-#         b = line.get('b')
-#         x = np.linspace(0,600,600)
-#         y = m*x + b
-#         plt.plot(x, y)
-#
-#     plt.title('Graph of y=2x+1')
-#     plt.xlabel('x', color='#1C2833')
-#     plt.ylabel('y', color='#1C2833')
-#     plt.legend(loc='upper left')
-#     plt.grid()
-#     plt.show()
-#
-#     print()
-
-
 def filter_lines_by_slop(lines, low, high):
     result = []
     for line in lines:
@@ -473,7 +445,6 @@ def yield_sign_detection(img_in):
     merged = merge_colors_in_image(merged, red_variant_3, RED, threshold=40)
     merged = merge_colors_in_image(merged, red_variant_4, RED, threshold=40)
     filtered_img = filter_pixels_by_value(merged, RED, threshold=50).astype(np.uint8)
-    cv2.imwrite('out/filtered.png',filtered_img)
 
     binary_filtered_img = transform_to_binary_image(filtered_img)
 
@@ -483,7 +454,6 @@ def yield_sign_detection(img_in):
     enclosed = fill_pixels_if_enclosed(enclosed)
 
     edges = cv2.Canny(enclosed,90,210)
-    cv2.imwrite('out/edges.png',edges)
     binary_edges = np.zeros_like(edges)
     binary_edges[enclosed == 255] = 1
     # should be two results here
@@ -494,24 +464,9 @@ def yield_sign_detection(img_in):
     if lines is None:
         raise RuntimeError("No lines detected for construction sign detection")
 
-    # i = 0
-    # for line in lines:
-    #     x1,y1,x2,y2 = line[0]
-    #     cv2.line(ln_img,(x1,y1),(x2,y2),(0,255,255),1)
-    #     cv2.imwrite('out/houghlines' + str(i) + '.png',ln_img)
-    #     i += 1
-    #
-    # cv2.imwrite('out/houghlines5.png',ln_img)
-
     right_side = filter_lines_by_slop(lines, 1.3, 2.0)
     left_side = filter_lines_by_slop(lines, -2.0, -1.3)
     top_lines = filter_lines_by_slop(lines, -0.01, 0.01)
-
-    # grouped_lines = []
-    # for line in lines:
-    #     grouped_lines = group_lines(line, grouped_lines)
-    #
-    # plot_lines(grouped_lines)
 
     grouped_lines = []
     for line in right_side:
@@ -528,17 +483,12 @@ def yield_sign_detection(img_in):
     left_grouped_lines = []
     for line in left_side:
         left_grouped_lines = group_lines(line, left_grouped_lines)
-    top_group_lines = []
-    # for line in top_lines:
-    #     top_group_lines = group_lines(line, top_group_lines)
-    # plot_lines(grouped_lines) 240, 357
 
     if len(right_grouped_lines) != 1:
         raise RuntimeError("right group")
     if len(left_grouped_lines) != 1:
         raise RuntimeError("left group")
 
-    print()
 
     right_line = right_grouped_lines[0]
     left_line = left_grouped_lines[0]
@@ -552,13 +502,6 @@ def yield_sign_detection(img_in):
         if y_l + 35 < intersecting_point[1] and intersecting_point[1] - y_l < distance:
             distance = intersecting_point[1] - y_l
             nearest_straight_line = line
-
-    print()
-
-    # for line in right_side:
-    #     grouped_lines = group_lines(line, grouped_lines)
-    # for line in left_side:
-    #     grouped_lines = group_lines(line, grouped_lines)
 
     top_grouped = []
     top_grouped = group_lines(nearest_straight_line, top_grouped)
@@ -681,19 +624,12 @@ def warning_sign_detection(img_in):
     h, w, _ = img_in.shape
     filtered_img = filter_pixels_by_value(img_in, YELLOW).astype(np.uint8)
 
-    cv2.imwrite('out/filtered.png', filtered_img)
     binary_filtered_img = transform_to_binary_image(filtered_img)
 
-    # enclosed = fill_pixels_if_enclosed(binary_filtered_img, fill_top_to_bottom=False)
-    # enclosed = fill_pixels_if_enclosed(enclosed, fill_top_to_bottom=False)
     enclosed = fill_pixels_if_enclosed(binary_filtered_img)
     enclosed = fill_pixels_if_enclosed(enclosed)
 
-    # if h > 292 and w > 125 and rmse(img_in[292, 125, :], np.array([15, 225, 240])) < 5:
-    #     enclosed = fill_pixels_if_enclosed(binary_filtered_img)
-    #     enclosed = fill_pixels_if_enclosed(enclosed)
     binary_filtered_img[enclosed == 255] = 1
-    cv2.imwrite('out/enclosed.png', enclosed)
     edges = cv2.Canny(enclosed,90,210)
     # binary_edges = np.zeros_like(edges)
     # binary_edges[edges == 255] = 1
@@ -704,15 +640,6 @@ def warning_sign_detection(img_in):
 
     if lines is None:
         raise RuntimeError("No lines detected for construction sign detection")
-
-    # i = 0
-    # for line in lines:
-    #     x1,y1,x2,y2 = line[0]
-    #     cv2.line(ln_img,(x1,y1),(x2,y2),(0,255,0),2)
-    #     cv2.imwrite('houghlines' + str(i) + '.png',ln_img)
-    #     i += 1
-    #
-    # cv2.imwrite('houghlines5.png',edges)
 
     # might have to filter lines before this method
     # hint, we only want lines with a certain slope
@@ -754,16 +681,12 @@ def construction_sign_detection(img_in):
     merged = merge_colors_in_image(merged, orange_variant_2, ORANGE, threshold=30)
     filtered_img = filter_pixels_by_value(merged, ORANGE, threshold=40).astype(np.uint8)
 
-    cv2.imwrite('out/filtered.png', filtered_img)
-
     binary_filtered_img = transform_to_binary_image(filtered_img)
     enclosed = fill_pixels_if_enclosed(binary_filtered_img)
     enclosed = fill_pixels_if_enclosed(enclosed)
-    cv2.imwrite('out/enclosed.png', enclosed)
     binary_filtered_img[enclosed == 255] = 1
 
     edges = cv2.Canny(enclosed,90,210)
-    cv2.imwrite('out/edges.png', edges)
     binary_edges = np.zeros_like(edges)
     binary_edges[edges == 255] = 1
 
@@ -774,14 +697,6 @@ def construction_sign_detection(img_in):
     if lines is None:
         raise RuntimeError("No lines detected for construction sign detection")
 
-    # i = 0
-    # for line in lines:
-    #     x1,y1,x2,y2 = line[0]
-    #     cv2.line(ln_img,(x1,y1),(x2,y2),(0,255,0),2)
-    #     cv2.imwrite('houghlines' + str(i) + '.png',ln_img)
-    #     i += 1
-    #
-    # cv2.imwrite('houghlines5.png',edges)
 
     # might have to filter lines before this method
     # hint, we only want lines with a certain slope
@@ -885,17 +800,11 @@ def do_not_enter_sign_detection(img_in):
 
     check_for_circles(circles)
 
-    # draw_circles(circles, img_in)
-
     # filter circles
     for circle in circles[0]:
         x = int(circle[0])
         y = int(circle[1])
         radius = circle[2]
-        # center_value = np.average(img_in[y, x-5:x+5, :])
-        # is_center_white_error = rmse(center_value, WHITE)
-        # if center_value < 130:
-        #     continue
 
         temp = img_in[y, x-5:x+5, :]
         has_white_pixel = False
@@ -1093,10 +1002,6 @@ def traffic_sign_detection_noisy(img_in):
               These are just example values and may not represent a
               valid scene.
     """
-    blur = cv2.GaussianBlur(img_in,(5,5),0)
-    median = cv2.medianBlur(img_in,5)
-    # cv2.imwrite('out/blur.png', blur)
-    # cv2.imwrite('out/median.png', median)
     result = traffic_sign_detection(img_in)
     return result
 
