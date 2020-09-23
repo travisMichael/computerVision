@@ -52,11 +52,159 @@ CORNER_KERNEL = np.array([
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
 ]).astype(np.float)
 
+DIAGONAL_CORNER_KERNEL = np.array([
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+    [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+    [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+    [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+    [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+]).astype(np.float)
+
+DIAGONAL_CORNER_KERNEL[DIAGONAL_CORNER_KERNEL == 1] = -1
+DIAGONAL_CORNER_KERNEL[DIAGONAL_CORNER_KERNEL == 0] = 1
+
+
 SPEC_KERNEL = np.array([
     [-1, -1, -1],
     [-1, 1, -1],
     [-1, -1, -1],
 ]).astype(np.float)
+
+r = np.zeros((32, 32, 3))
+r[0:16, 0:16] = [255, 255, 255]
+r[16:,16:] = [255, 255, 255]
+
+d = np.zeros((32, 32, 3))
+d[16:, 0:16] = [255, 255, 255]
+d[0:16, 16:] = [255, 255, 255]
+
+s = np.zeros((32, 32, 3))
+
+for i in range(32):
+    for j in range(32):
+        if i < 16:
+            if j < 16:
+                if i <= j:
+                    s[i, j] = [255, 255, 255]
+            else:
+                if j+i < 31:
+                    s[i, j] = [255, 255, 255]
+        else:
+            if j < 16:
+                if j + i >= 31:
+                    s[i, j] = [255, 255, 255]
+            else:
+                if i > j:
+                    s[i, j] = [255, 255, 255]
+
+t = np.copy(s)
+t[s == 255] = 0
+t[s == 0] = 255
+
+
+def rotate_template_45(im):
+    h, w, _ = im.shape
+    map_x = np.zeros((h, w), dtype=np.float32)
+    map_y = np.zeros((h, w), dtype=np.float32)
+
+    for i in range(map_x.shape[0]):
+        map_x[i,:] = [x for x in range(map_x.shape[1])]
+    for j in range(map_y.shape[1]):
+        map_y[:,j] = [y for y in range(map_y.shape[0])]
+
+    map_x_copy = np.copy(map_x)
+    map_y_copy = np.copy(map_y)
+
+    theta = np.pi / 4
+
+    for i in range(map_x.shape[0]):
+        for j in range(map_x.shape[1]):
+            map_x_copy[i, j] = map_x[i][j]*np.cos(theta) - map_y[i][j]*np.sin(theta) + 16
+            map_y_copy[i, j] = map_x[i][j]*np.sin(theta) + map_y[i][j]*np.cos(theta) - 7
+
+    dst = cv2.remap(im, map_x_copy, map_y_copy, cv2.INTER_LINEAR)
+    return dst
+
+
+def rotate_template_90(im):
+    h, w, _ = im.shape
+    map_x = np.zeros((h, w), dtype=np.float32)
+    map_y = np.zeros((h, w), dtype=np.float32)
+
+    for i in range(map_x.shape[0]):
+        map_x[i,:] = [x for x in range(map_x.shape[1])]
+    for j in range(map_y.shape[1]):
+        map_y[:,j] = [y for y in range(map_y.shape[0])]
+
+    map_x_copy = np.copy(map_x)
+    map_y_copy = np.copy(map_y)
+
+    theta = np.pi / 2
+
+    for i in range(map_x.shape[0]):
+        for j in range(map_x.shape[1]):
+            map_x_copy[i, j] = map_x[i][j]*np.cos(theta) - map_y[i][j]*np.sin(theta) + 32
+            map_y_copy[i, j] = map_x[i][j]*np.sin(theta) + map_y[i][j]*np.cos(theta)
+
+    dst = cv2.remap(im, map_x_copy, map_y_copy, cv2.INTER_LINEAR)
+    return dst
+
+
+def order_corners(corners, img_shape):
+    h = img_shape[0]
+    w = img_shape[1]
+    # (x, y) pairs
+    true_top_left = (0, 0)
+    true_top_right = (w, 0)
+    true_bottom_left = (0, h)
+    true_bottom_right = (w, h)
+
+    top_left = corners[0]
+    top_right = corners[0]
+    bottom_left = corners[0]
+    bottom_right = corners[0]
+
+    top_left_d = 10000
+    top_right_d = 10000
+    bottom_left_d = 10000
+    bottom_right_d = 10000
+
+    for corner in corners:
+        current_top_left_d = euclidean_distance(corner, true_top_left)
+        current_top_right_d = euclidean_distance(corner, true_top_right)
+        current_bottom_left_d = euclidean_distance(corner, true_bottom_left)
+        current_bottom_right_d = euclidean_distance(corner, true_bottom_right)
+
+        if current_top_left_d < top_left_d:
+            top_left_d = current_top_left_d
+            top_left = corner
+        if current_top_right_d < top_right_d:
+            top_right_d = current_top_right_d
+            top_right = corner
+        if current_bottom_left_d < bottom_left_d:
+            bottom_left_d = current_bottom_left_d
+            bottom_left = corner
+        if current_bottom_right_d < bottom_right_d:
+            bottom_right_d = current_bottom_right_d
+            bottom_right = corner
+
+    return [top_left, bottom_left, top_right, bottom_right]
 
 
 def draw_circles(circles, img_in):
@@ -105,51 +253,84 @@ def get_corners_list(image):
     return corners
 
 
-def group_points(point, points, threshold=20):
+def group_points(point, points, values=None, threshold=20):
     has_merged = False
     for p in points:
         x = p.get('x')
         y = p.get('y')
         point_distance = euclidean_distance(point, (x, y))
         if point_distance < threshold:
+            value = p.get('value')
             count = p.get('count')
+            if values is not None:
+                value = (value * count + values[point[1], point[0]]) / (count + 1)
             new_x = (x * count + point[0]) / (count + 1)
             new_y = (y * count + point[1]) / (count + 1)
             p['count'] = count + 1
             p['x'] = new_x
             p['y'] = new_y
+            p['value'] = value
             has_merged = True
 
     if not has_merged:
-        points.append({'x': point[0], 'y': point[1], 'count': 1})
+        value = 0.0
+        if values is not None:
+            value = values[point[1], point[0]]
+        points.append({'x': point[0], 'y': point[1], 'value': value, 'count': 1})
 
     return points
 
 
-def filter_specs(gray_image):
-    h = gray_image.shape[0]
-    w = gray_image.shape[1]
-    binary_image = np.zeros((h, w)).astype(np.float)
-    binary_image[gray_image > 1] = 1
+def group_the_points(point, points, values=None, threshold=20):
+    has_merged = False
+    x_i, y_i, value_i = point
+    i = 0
+    for p in points:
+        x = p.get('x')
+        y = p.get('y')
+        value = p.get('value')
+        point_distance = euclidean_distance((x_i, y_i), (x, y))
+        if point_distance < threshold:
+            if value_i < value:
+                p['x'] = x_i
+                p['y'] = y_i
+                p['value'] = value_i
+            has_merged = True
 
-    filtered_result = cv2.filter2D(binary_image, -1, SPEC_KERNEL)
-    indices = np.where(filtered_result == 1)
+    if not has_merged:
+        # value = 0.0
+        # if values is not None:
+        #     value = values[point[1], point[0]]
+        points.append({'x': x_i, 'y': y_i, 'value': value_i})
+        # points.append((point[0], point[1], value))
 
-    binary_image[indices] = 0
-    gray = binary_image * 255
-    # cv2.imwrite("out/specs.png", gray)
+    return points
 
-    reverse_binary = np.ones_like(binary_image)
-    reverse_binary[binary_image == 1] = 0
 
-    filtered_result = cv2.filter2D(reverse_binary, -1, SPEC_KERNEL)
-    indices = np.where(filtered_result == 1)
-    binary_image[indices] = 1
-    # cv2.imwrite("out/reverse.png", binary_image*255)
-
-    result = binary_image*255
-
-    return result.astype(np.uint8)
+# def filter_specs(gray_image):
+#     h = gray_image.shape[0]
+#     w = gray_image.shape[1]
+#     binary_image = np.zeros((h, w)).astype(np.float)
+#     binary_image[gray_image > 1] = 1
+#
+#     filtered_result = cv2.filter2D(binary_image, -1, SPEC_KERNEL)
+#     indices = np.where(filtered_result == 1)
+#
+#     binary_image[indices] = 0
+#     gray = binary_image * 255
+#     # cv2.imwrite("out/specs.png", gray)
+#
+#     reverse_binary = np.ones_like(binary_image)
+#     reverse_binary[binary_image == 1] = 0
+#
+#     filtered_result = cv2.filter2D(reverse_binary, -1, SPEC_KERNEL)
+#     indices = np.where(filtered_result == 1)
+#     binary_image[indices] = 1
+#     # cv2.imwrite("out/reverse.png", binary_image*255)
+#
+#     result = binary_image*255
+#
+#     return result.astype(np.uint8)
 
 
 def draw_corners(corners, image):
@@ -173,7 +354,125 @@ def draw_grouped_corners(corners, image):
     return image
 
 
-def find_markers(image, template=None):
+# def get_best_filter_results(image, kernel, check_for_minimum=True):
+#     filter_results = cv2.filter2D(image, -1, kernel)
+#     filter_results = np.copy(filter_results)
+#
+#     if check_for_minimum:
+#         filter_results[filter_results > 0] = 0
+#         filter_results = filter_results * -1
+#
+#     result_h = int(filter_results.shape[0] / 2)
+#     result_w = int(filter_results.shape[1] / 2)
+#     top_left_result = filter_results[0:result_h, 0:result_w]
+#     top_right_result = filter_results[0:result_h, result_w:]
+#     bottom_left_result = filter_results[result_h:, 0:result_w]
+#     bottom_right_result = filter_results[result_h:, result_w:]
+#
+#     corners = []
+#
+#     left_top_min = np.where(top_left_result == top_left_result.max())
+#     right_top_min = np.where(top_right_result == top_right_result.max())
+#     left_bottom_min = np.where(bottom_left_result == bottom_left_result.max())
+#     right_bottom_min = np.where(bottom_right_result == bottom_right_result.max())
+#
+#     lt_corner = (left_top_min[1][0], left_top_min[0][0])
+#     rt_corner = (right_top_min[1][0] + result_w, right_top_min[0][0])
+#     lb_corner = (left_bottom_min[1][0], left_bottom_min[0][0] + result_h)
+#     rb_corner = (right_bottom_min[1][0] + result_w, right_bottom_min[0][0] + result_h)
+#
+#     corners.append((lt_corner, top_left_result.max()))
+#     corners.append((rt_corner, top_right_result.max()))
+#     corners.append((lb_corner, bottom_left_result.max()))
+#     corners.append((rb_corner, bottom_right_result.max()))
+#
+#     confidence = np.average([
+#         top_left_result.max(), top_right_result.max(), bottom_left_result.max(), bottom_right_result.max()
+#     ])
+#
+#     return corners, confidence
+
+
+def extract_marker_locations(result, combo_result):
+    h, w = result.shape
+    template_result = result-(combo_result/5)
+    markers = []
+    total_value = 0.0
+    n = 0
+    while n < 4:
+        value = template_result.min()
+        indices = np.where(template_result == value)
+        y = indices[0][0]
+        x = indices[1][0]
+
+        y_left = np.min([10, y])
+        y_right = np.min([10, h-y])
+        x_left = np.min([10, x])
+        x_right = np.min([10, w-x])
+        template_result[y-y_left:y+y_right, x-x_left:x+x_right] = 1.0
+
+        if euclidean_distance((0, 0), (x,y)) < 10 or euclidean_distance((0, w), (x,y)) < 10 or euclidean_distance((h, 0), (x,y)) < 10 or euclidean_distance((h, w), (x,y)) < 10:
+            continue
+
+        # if combo_result[y, x] > 0:
+        #     value -= 0.15
+        total_value += value
+        markers.append({"x": x, "y": y, "value": result[y, x]})
+
+        cv2.imwrite("out/template_result" + str(i) + ".png", template_result * 255)
+        n += 1
+
+    confidence = total_value / 4.0
+    return markers, confidence
+
+
+# def extract_marker_locations_1(result, combo_result):
+#     template_result = result - combo_result
+#     h, w = result.shape
+#     # markers = []
+#     for threshold in [0.5, 0.6, 0.7]:
+#         indices = np.where(template_result < threshold)
+#         if len(indices[0]) >= 20:
+#             break
+#
+#     if len(indices[0]) == 0:
+#         raise RuntimeError("Error too high")
+#
+#     points = []
+#     for i in range(len(indices[0])):
+#         y = indices[0][i]
+#         x = indices[1][i]
+#         if x == 400 and y == 40:
+#             print()
+#         value = template_result[y, x]
+#         point = (x, y, value)
+#         group_the_points(point, points)
+#
+#     # sorted_p = markers.sort(key = lambda x: x[2])
+#     points.sort(key = lambda x: x.get('value'))
+#
+#     for i in range(len(points)-1, -1, -1):
+#         if points[i-1].get('x') == points[i].get('x') and points[i-1].get('y') == points[i].get('y'):
+#             del points[i]
+#
+#     # check for minimums
+#     markers = []
+#     window = 12
+#     for i in range(4):
+#         p = points[i]
+#         x = p.get('x')
+#         y = p.get('y')
+#         if x < window or w-x< window or y < window or h-y < window:
+#             continue
+#         args = np.unravel_index(np.argmin(result[y-window:y+window, x-window:x+window]), shape=(window*2, window*2))
+#         x = x + args[1] - window
+#         y = y + args[0] - window
+#         markers.append({"x": x, "y": y, "value": result[y, x]-combo_result[y,x]})
+#
+#     return markers
+
+
+def find_markers(image, template=None, i=0):
     """Finds four corner markers.
 
     Use a combination of circle finding, corner detection and convolution to
@@ -188,21 +487,84 @@ def find_markers(image, template=None):
             in the order [top-left, bottom-left, top-right, bottom-right].
     """
     h, w, _ = image.shape
-    down = cv2.pyrDown(image)
-    cv2.imwrite('out/down.png',down)
+    min_radius = 8
+    max_radius = 40
+    param_2 = 18
+    if h + w > 1100:
+        min_radius = 18
+        param_2 = 20
+        max_radius = 65
+    # down = cv2.pyrDown(image)
+    # down = cv2.pyrDown(down)
+    # cv2.imwrite('out/down.png',down)
 
     gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+    dst = cv2.cornerHarris(gray,2,9,0.04)
+    dst = cv2.dilate(dst,None)
+    # Threshold for an optimal value, it may vary depending on the image.
+    image[dst > 0.2*dst.max()]=[0,0,255]
+    cv2.imwrite('out/corners.png',image)
+
+    edges = cv2.Canny(gray.astype(np.uint8),90,210)
+    cv2.imwrite('out/edges.png',edges)
+    circles = cv2.HoughCircles(edges,cv2.HOUGH_GRADIENT,1,3,param1=250,param2=param_2,minRadius=min_radius,maxRadius=max_radius)
+    sample = np.zeros_like(image)
+    draw_circles(circles, sample)
+
+    circle_edge_combos = np.zeros_like(edges).astype(np.float)
+    for circle in circles[0]:
+        x = int(circle[0])
+        y = int(circle[1])
+        if x < 10 or y < 10 or h-y < 10 or w- x < 10:
+            continue
+        if dst[y-5:y+5, x-5:x+5].max() > 0.05*dst.max():
+            circle_edge_combos[y-2:y+2, x-2:x+2] = 255
+
+    cv2.imwrite('out/combos.png', circle_edge_combos)
+    combo_blur = cv2.filter2D(circle_edge_combos, -1, np.ones((5,5)).astype(np.float)/25)
+    cv2.imwrite('out/blur.png', combo_blur)
+
+    gray = cv2.copyMakeBorder(gray, 16, 15, 16, 15, cv2.BORDER_CONSTANT)
+    gray[0:16, :] = 128
+
+    combo_blur = combo_blur / (combo_blur.max()*4)
     # gray[gray > 110] = 255
     # gray[gray <= 110] = 0
     # gray[gray > 140] = 255
     # gray[gray <= 140] = 0
-    cv2.imwrite('out/gray.png',gray)
+    # Index += 1
+    # cv2.imwrite('out/gray.png',gray)
 
-    # gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    # gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY) 182, 134   (83, 59)
 
-    # template = cv2.cvtColor(template,cv2.COLOR_BGR2GRAY)
-    # template_result = cv2.matchTemplate(image,template,cv2.TM_SQDIFF_NORMED)
-    # cv2.imwrite('out/template_result.png',template_result*255)
+    template = cv2.cvtColor(r.astype(np.uint8),cv2.COLOR_BGR2GRAY)
+    template_result = cv2.matchTemplate(gray,template,cv2.TM_SQDIFF_NORMED)
+    markers_1, c_1 = extract_marker_locations(template_result, combo_blur)
+    cv2.imwrite('out/template_result.png',template_result*255)
+
+    threshold = np.zeros_like(template_result)
+    threshold[template_result < np.average(template_result) - 1.5 * np.std(template_result)] = 255
+    cv2.imwrite('out/threshold.png',threshold)
+
+    template = cv2.cvtColor(d.astype(np.uint8),cv2.COLOR_BGR2GRAY)
+    template_result = cv2.matchTemplate(gray,template,cv2.TM_SQDIFF_NORMED)
+    markers_2, c_2 = extract_marker_locations(template_result, combo_blur)
+    cv2.imwrite('out/template_result_2.png',template_result*255)
+
+    # template = cv2.cvtColor(s.astype(np.uint8),cv2.COLOR_BGR2GRAY)
+    # template_result = cv2.matchTemplate(gray,template,cv2.TM_SQDIFF_NORMED)
+    # markers_3 = extract_marker_locations(template_result)
+    # cv2.imwrite('out/template_result_3.png',template_result*255)
+    #
+    # template = cv2.cvtColor(t.astype(np.uint8),cv2.COLOR_BGR2GRAY)
+    # template_result = cv2.matchTemplate(gray,template,cv2.TM_SQDIFF_NORMED)
+    # markers_4 = extract_marker_locations(template_result)
+    # cv2.imwrite('out/template_result_4.png',template_result*255)
+
+    if c_1 < c_2:
+        markers = markers_1
+    else:
+        markers = markers_2
     #
     # b = np.zeros_like(template_result)
     # b[template_result < 0.42] = 255
@@ -217,102 +579,32 @@ def find_markers(image, template=None):
     #
     # cv2.imwrite('out/template_result_3.png',template_result_3*255)
 
-    binary_image = np.zeros_like(gray).astype(np.float)
-    binary_image[gray > 128] = 1
-    result = cv2.filter2D(binary_image, -1, CORNER_KERNEL)
-
-    result[result > 0] = 0
-    result = result * -1
-
-    cv2.imwrite('out/result.png', result)
-
-    indices = np.where(result > 190)
-
-    points = []
-    for i in range(len(indices[0])):
-        x = indices[1][i]
-        y = indices[0][i]
-        points.append((x, y))
-
-    grouped = []
-    for point in points:
-        grouped = group_points(point, grouped)
+    # binary_image = np.zeros_like(gray).astype(np.float)
+    # binary_image[gray > 128] = 1
+    #
+    # corners_min, min_confidence = get_best_filter_results(binary_image, CORNER_KERNEL)
+    # corners_max, max_confidence = get_best_filter_results(binary_image, CORNER_KERNEL, False)
+    # corners_min_2, min_confidence_2 = get_best_filter_results(binary_image, DIAGONAL_CORNER_KERNEL)
+    # corners_max_2, max_confidence_2 = get_best_filter_results(binary_image, DIAGONAL_CORNER_KERNEL, False)
+    # # todo add get_best_results for rotation by intermediate amounts?
+    #
+    # arg_min = np.argmin([min_confidence, max_confidence, min_confidence_2, max_confidence_2])
+    # best_corners = [corners_min, corners_max, corners_min_2, corners_max_2][arg_min]
 
     corners = []
-    for c in grouped:
-        x = int(c.get('x'))
-        y = int(c.get('y'))
-        corners.append((x, y))
 
+    for m in markers:
+        x = m.get('x')
+        y = m.get('y')
+        corners.append((x,y))
+
+    image = draw_corners(corners, image)
+    cv2.imwrite("out/greater" + str(i) + ".png", image)
     ordered_corners = order_corners(corners, image.shape)
 
-    print()
     return ordered_corners
 
-    # rotated = ndimage.rotate(template, 7, reshape=False)
-    # cv2.imwrite('out/roated.png',rotated)
-    # template = rotated
-    #
-    # zeros = np.zeros_like(template_result)
-    #
-    # zeros[template_result < 0.35] = 255
-    # cv2.imwrite('out/matches.png',zeros)
-    #
-    # # cv2.imwrite('out/template_result.png',res*255)
-    # indices = np.where(template_result < 0.1)
-    # corners = []
-    # for i in range(len(indices[0])):
-    #     x = indices[1][i] + 16
-    #     y = indices[0][i] + 16
-    #     corners.append((x, y))
-    #
-    # if len(corners) > 4:
-    #     raise RuntimeError('More than 4 corner matches were found')
-    # if len(corners) < 4:
-    #     raise RuntimeError('Less than 4 corner matches were found')
-    #
-    # return order_corners(corners, image.shape)
-
-
-def order_corners(corners, img_shape):
-    h = img_shape[0]
-    w = img_shape[1]
-    # (x, y) pairs
-    true_top_left = (0, 0)
-    true_top_right = (w, 0)
-    true_bottom_left = (0, h)
-    true_bottom_right = (w, h)
-
-    top_left = corners[0]
-    top_right = corners[0]
-    bottom_left = corners[0]
-    bottom_right = corners[0]
-
-    top_left_d = 10000
-    top_right_d = 10000
-    bottom_left_d = 10000
-    bottom_right_d = 10000
-
-    for corner in corners:
-        current_top_left_d = euclidean_distance(corner, true_top_left)
-        current_top_right_d = euclidean_distance(corner, true_top_right)
-        current_bottom_left_d = euclidean_distance(corner, true_bottom_left)
-        current_bottom_right_d = euclidean_distance(corner, true_bottom_right)
-
-        if current_top_left_d < top_left_d:
-            top_left_d = current_top_left_d
-            top_left = corner
-        if current_top_right_d < top_right_d:
-            top_right_d = current_top_right_d
-            top_right = corner
-        if current_bottom_left_d < bottom_left_d:
-            bottom_left_d = current_bottom_left_d
-            bottom_left = corner
-        if current_bottom_right_d < bottom_right_d:
-            bottom_right_d = current_bottom_right_d
-            bottom_right = corner
-
-    return [top_left, bottom_left, top_right, bottom_right]
+    # indices = np.where(abs(result) > 150)
 
 
 def draw_box(image, markers, thickness=1):
@@ -409,7 +701,29 @@ def find_four_point_transform(src_points, dst_points):
         numpy.array: 3 by 3 homography matrix of floating point values.
     """
 
-    raise NotImplementedError
+    mat_A = np.array([
+        [0, 0, 0, -src_points[0][0], -src_points[0][1], -1, src_points[0][0]*dst_points[0][1], src_points[0][1]*dst_points[0][1], dst_points[0][1]],
+        [-src_points[0][0], -src_points[0][1], -1, 0, 0, 0, src_points[0][0]*dst_points[0][0], src_points[0][1]*dst_points[0][0], dst_points[0][0]],
+
+        [0, 0, 0, -src_points[1][0], -src_points[1][1], -1, src_points[1][0]*dst_points[1][1], src_points[1][1]*dst_points[1][1], dst_points[1][1]],
+        [-src_points[1][0], -src_points[1][1], -1, 0, 0, 0, src_points[1][0]*dst_points[1][0], src_points[1][1]*dst_points[1][0], dst_points[1][0]],
+
+        [0, 0, 0, -src_points[2][0], -src_points[2][1], -1, src_points[2][0]*dst_points[2][1], src_points[2][1]*dst_points[2][1], dst_points[2][1]],
+        [-src_points[2][0], -src_points[2][1], -1, 0, 0, 0, src_points[2][0]*dst_points[2][0], src_points[2][1]*dst_points[2][0], dst_points[2][0]],
+
+        [0, 0, 0, -src_points[3][0], -src_points[3][1], -1, src_points[3][0]*dst_points[3][1], src_points[3][1]*dst_points[3][1], dst_points[3][1]],
+        [-src_points[3][0], -src_points[3][1], -1, 0, 0, 0, src_points[3][0]*dst_points[3][0], src_points[3][1]*dst_points[3][0], dst_points[3][0]],
+
+        [0, 0, 0, 0, 0, 0, 0, 0, 1]
+    ]).astype(dtype=np.float64)
+
+    mat_b = np.zeros((mat_A.shape[0], 1), dtype=np.float64)
+    mat_b[8] = 1
+
+    mat_A_inverse = np.linalg.pinv(mat_A)
+    x = np.dot(mat_A_inverse, mat_b)
+
+    return np.reshape(x, (3, 3))
 
 
 def video_frame_generator(filename):
@@ -424,7 +738,7 @@ def video_frame_generator(filename):
         None.
     """
     # Todo: Open file with VideoCapture and set result to 'video'. Replace None
-    video = None
+    video = cv2.VideoCapture(filename)
 
     # Do not edit this while loop
     while video.isOpened():
@@ -436,4 +750,6 @@ def video_frame_generator(filename):
             break
 
     # Todo: Close video (release) and yield a 'None' value. (add 2 lines)
-    raise NotImplementedError
+    video.release()
+    yield None
+    # raise NotImplementedError
