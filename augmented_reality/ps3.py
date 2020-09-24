@@ -166,45 +166,98 @@ def rotate_template_90(im):
     return dst
 
 
-def order_corners(corners, img_shape):
-    h = img_shape[0]
-    w = img_shape[1]
-    # (x, y) pairs
-    true_top_left = (0, 0)
-    true_top_right = (w, 0)
-    true_bottom_left = (0, h)
-    true_bottom_right = (w, h)
+def order_corners(corners, true_corners):
 
-    top_left = corners[0]
-    top_right = corners[0]
-    bottom_left = corners[0]
-    bottom_right = corners[0]
+    # history = np.zeros(4)
+    #
+    # for tc in true_corners:
+    #     best = 0
+    #     best_distnace = 1000
+    #     i = 0
+    #     for c in corners:
+    #         distance = euclidean_distance(c, tc)
+    #         if distance < best_distnace:
+    #             best_distnace = distance
+    #             best = i
+    #         i += 1
+    #     history[best] += 1
+    #
+    # # (x, y) pairs
+    # top_left = corners[0]
+    # top_right = corners[0]
+    # bottom_left = corners[0]
+    # bottom_right = corners[0]
+    #
+    # top_left_d = 10000
+    # top_right_d = 10000
+    # bottom_left_d = 10000
+    # bottom_right_d = 10000
 
-    top_left_d = 10000
-    top_right_d = 10000
-    bottom_left_d = 10000
-    bottom_right_d = 10000
+    corner_index_map = np.zeros(4).astype(np.int)
+    true_corner_index_map = np.zeros(4).astype(np.int)
+    corner_index_map[:] = -1
+    true_corner_index_map[:] = -1
+    for _ in range(4):
 
-    for corner in corners:
-        current_top_left_d = euclidean_distance(corner, true_top_left)
-        current_top_right_d = euclidean_distance(corner, true_top_right)
-        current_bottom_left_d = euclidean_distance(corner, true_bottom_left)
-        current_bottom_right_d = euclidean_distance(corner, true_bottom_right)
+        best_distance = 10000
+        best_true_corner = -1
+        best_corner = -1
+        i = 0
+        for corner in corners:
+            if corner_index_map[i] > -1:
+                i += 1
+                continue
+            j = 0
+            for true_corner in true_corners:
+                distance = euclidean_distance(corner, true_corner)
+                if distance < best_distance and true_corner_index_map[j] == -1:
+                    best_corner = i
+                    best_true_corner = j
+                    best_distance = distance
+                j += 1
 
-        if current_top_left_d < top_left_d:
-            top_left_d = current_top_left_d
-            top_left = corner
-        if current_top_right_d < top_right_d:
-            top_right_d = current_top_right_d
-            top_right = corner
-        if current_bottom_left_d < bottom_left_d:
-            bottom_left_d = current_bottom_left_d
-            bottom_left = corner
-        if current_bottom_right_d < bottom_right_d:
-            bottom_right_d = current_bottom_right_d
-            bottom_right = corner
+            i += 1
+        corner_index_map[best_corner] = best_true_corner
+        true_corner_index_map[best_true_corner] = 1
 
-    return [top_left, bottom_left, top_right, bottom_right]
+    ordered_corners = []
+    for i in range(4):
+        index = np.where(corner_index_map == i)[0][0]
+        ordered_corners.append(corners[index])
+
+    return ordered_corners
+
+    #     current_top_left_d = euclidean_distance(corner, true_top_left)
+    #     current_top_right_d = euclidean_distance(corner, true_top_right)
+    #     current_bottom_left_d = euclidean_distance(corner, true_bottom_left)
+    #     current_bottom_right_d = euclidean_distance(corner, true_bottom_right)
+    #
+    #     if current_top_left_d < top_left_d:
+    #         top_left_d = current_top_left_d
+    #         top_left = corner
+    #     if current_top_right_d < top_right_d:
+    #         top_right_d = current_top_right_d
+    #         top_right = corner
+    #     if current_bottom_left_d < bottom_left_d:
+    #         bottom_left_d = current_bottom_left_d
+    #         bottom_left = corner
+    #     if current_bottom_right_d < bottom_right_d:
+    #         bottom_right_d = current_bottom_right_d
+    #         bottom_right = corner
+    #
+    # if np.max(history) > 1:
+    #     d_1 = euclidean_distance(top_left, top_right)
+    #     d_2 = euclidean_distance(top_right, bottom_right)
+    #     d_3 = euclidean_distance(bottom_right, bottom_left)
+    #     d_4 = euclidean_distance(top_left, bottom_left)
+    #     non_ordered_str = str(corners[0]) + str(corners[1]) + str(corners[2]) + str(corners[3])
+    #     ordered_str = str(top_left) + str(top_right) + str(bottom_left) + str(bottom_right)
+    #     distance_str = str(d_1) + " : " + str(d_2) + " : " + str(d_3) + " : " + str(d_4)
+    #     raise RuntimeError("Multiple corners in same quadrant " + non_ordered_str + " | " + ordered_str + " | " + distance_str)
+    #
+    # # print(str(top_right))
+    #
+    # return [top_left, bottom_left, top_right, bottom_right]
 
 
 def draw_circles(circles, img_in):
@@ -395,7 +448,7 @@ def draw_grouped_corners(corners, image):
 
 def extract_marker_locations(result, combo_result):
     h, w = result.shape
-    template_result = result-(combo_result/5)
+    template_result = result
     markers = []
     total_value = 0.0
     n = 0
@@ -487,6 +540,8 @@ def find_markers(image, template=None, i=0):
             in the order [top-left, bottom-left, top-right, bottom-right].
     """
     h, w, _ = image.shape
+    if h + w > 1200:
+        raise RuntimeError("large pic")
     min_radius = 8
     max_radius = 40
     param_2 = 18
@@ -512,13 +567,13 @@ def find_markers(image, template=None, i=0):
     draw_circles(circles, sample)
 
     circle_edge_combos = np.zeros_like(edges).astype(np.float)
-    for circle in circles[0]:
-        x = int(circle[0])
-        y = int(circle[1])
-        if x < 10 or y < 10 or h-y < 10 or w- x < 10:
-            continue
-        if dst[y-5:y+5, x-5:x+5].max() > 0.05*dst.max():
-            circle_edge_combos[y-2:y+2, x-2:x+2] = 255
+    # for circle in circles[0]:
+    #     x = int(circle[0])
+    #     y = int(circle[1])
+    #     if x < 10 or y < 10 or h-y < 10 or w- x < 10:
+    #         continue
+    #     if dst[y-5:y+5, x-5:x+5].max() > 0.05*dst.max():
+    #         circle_edge_combos[y-2:y+2, x-2:x+2] = 255
 
     cv2.imwrite('out/combos.png', circle_edge_combos)
     combo_blur = cv2.filter2D(circle_edge_combos, -1, np.ones((5,5)).astype(np.float)/25)
@@ -527,7 +582,7 @@ def find_markers(image, template=None, i=0):
     gray = cv2.copyMakeBorder(gray, 16, 15, 16, 15, cv2.BORDER_CONSTANT)
     gray[0:16, :] = 128
 
-    combo_blur = combo_blur / (combo_blur.max()*4)
+    # combo_blur = combo_blur / (combo_blur.max()*4)
     # gray[gray > 110] = 255
     # gray[gray <= 110] = 0
     # gray[gray > 140] = 255
@@ -536,9 +591,11 @@ def find_markers(image, template=None, i=0):
     # cv2.imwrite('out/gray.png',gray)
 
     # gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY) 182, 134   (83, 59)
+    t = np.copy(template)
 
-    template = cv2.cvtColor(r.astype(np.uint8),cv2.COLOR_BGR2GRAY)
+    template = cv2.cvtColor(template.astype(np.uint8),cv2.COLOR_BGR2GRAY)
     template_result = cv2.matchTemplate(gray,template,cv2.TM_SQDIFF_NORMED)
+    combo_blur = np.zeros_like(template_result).astype(np.float)
     markers_1, c_1 = extract_marker_locations(template_result, combo_blur)
     cv2.imwrite('out/template_result.png',template_result*255)
 
@@ -546,7 +603,8 @@ def find_markers(image, template=None, i=0):
     threshold[template_result < np.average(template_result) - 1.5 * np.std(template_result)] = 255
     cv2.imwrite('out/threshold.png',threshold)
 
-    template = cv2.cvtColor(d.astype(np.uint8),cv2.COLOR_BGR2GRAY)
+    template = rotate_template_90(t)
+    template = cv2.cvtColor(template.astype(np.uint8),cv2.COLOR_BGR2GRAY)
     template_result = cv2.matchTemplate(gray,template,cv2.TM_SQDIFF_NORMED)
     markers_2, c_2 = extract_marker_locations(template_result, combo_blur)
     cv2.imwrite('out/template_result_2.png',template_result*255)
@@ -560,6 +618,9 @@ def find_markers(image, template=None, i=0):
     # template_result = cv2.matchTemplate(gray,template,cv2.TM_SQDIFF_NORMED)
     # markers_4 = extract_marker_locations(template_result)
     # cv2.imwrite('out/template_result_4.png',template_result*255)
+
+    if c_1 < 0.3 and c_2 < 0.3:
+        raise RuntimeError('low confidence')
 
     if c_1 < c_2:
         markers = markers_1
@@ -600,7 +661,9 @@ def find_markers(image, template=None, i=0):
 
     image = draw_corners(corners, image)
     cv2.imwrite("out/greater" + str(i) + ".png", image)
-    ordered_corners = order_corners(corners, image.shape)
+
+    true_corners = [(0,0), (0, h), (w, 0), (w, h)]
+    ordered_corners = order_corners(corners, true_corners)
 
     return ordered_corners
 
