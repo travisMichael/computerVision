@@ -35,6 +35,7 @@ def helper_for_part_4_and_5(video_name, fps, frame_ids, output_prefix,
 
     if is_part5:
         advert = cv2.imread(os.path.join(IMG_DIR, "img-3-a-1.png"))
+        advert = cv2.resize(advert, (800, 450))
         src_points = ps3.get_corners_list(advert)
 
     output_counter = counter_init
@@ -43,9 +44,11 @@ def helper_for_part_4_and_5(video_name, fps, frame_ids, output_prefix,
 
     while image is not None:
 
+        # todo remove
+        cv2.imwrite('out/frame_in/fram' + str(frame_num) + '.png', image)
         print("Processing fame {}".format(frame_num))
 
-        markers = ps3.find_markers(image, template)
+        markers = ps3.find_markers(image, template, fram_num=frame_num)
 
         if is_part5:
             homography = ps3.find_four_point_transform(src_points, markers)
@@ -115,6 +118,30 @@ def part_1():
                     'sim_noisy_scene_2.jpg']
     output_images = ['ps3-1-a-1.png', 'ps3-1-a-2.png', 'ps3-1-a-3.png']
 
+    # input_images = [
+    #                 'fram33.png']
+    # output_images = [ 'out.png']
+
+    # input_images = [
+    #     'fram433.png']
+    # output_images = [ 'out.png']
+    #
+    # input_images = [
+    #     'fram234.png']
+    # output_images = [ 'out.png']
+    #
+    # input_images = [
+    #     'fram562.png', 'fram33.png', 'fram433.png', 'fram234.png']
+    # output_images = ['out.png', 'out2.png', 'out3.png', 'out4.png']
+
+    # input_images = [
+    #     'fram33.png']
+    # output_images = ['out.png']
+
+    # input_images = [
+    #     'fram429.png']
+    # output_images = ['out.png']
+
     # Optional template image
     template = cv2.imread(os.path.join(IMG_DIR, "template.jpg"))
 
@@ -142,8 +169,12 @@ def part_2():
     output_images = ['ps3-2-a-1.png', 'ps3-2-a-2.png', 'ps3-2-a-3.png',
                      'ps3-2-a-4.png', 'ps3-2-a-5.png']
 
-    input_images = ['ps3-2-a_base.jpg']
-    output_images = ['ps3-2-a-1.png']
+    # input_images = [
+    #                 'ps3-2-c_base.jpg']
+    # output_images = ['ps3-2-a-3.png']
+
+    # input_images = ['ps3-2-c_base.jpg']
+    # output_images = ['ps3-2-c-1.png']
 
     # Optional template image
     template = cv2.imread(os.path.join(IMG_DIR, "template.jpg"))
@@ -168,8 +199,12 @@ def part_3():
     input_images = ['ps3-3-a_base.jpg', 'ps3-3-b_base.jpg', 'ps3-3-c_base.jpg']
     output_images = ['ps3-3-a-1.png', 'ps3-3-a-2.png', 'ps3-3-a-3.png']
 
+    # input_images = ['ps3-3-c_base.jpg']
+    # output_images = ['ps3-3-a-3.png']
+
     # Advertisement image
     advert = cv2.imread(os.path.join(IMG_DIR, "img-3-a-1.png"))
+
     src_points = ps3.get_corners_list(advert)
 
     # Optional template image
@@ -276,6 +311,80 @@ def part_6():
 
     # Todo: Complete this part on your own.
 
+    video = os.path.join(VID_DIR, video_file)
+    image_gen = ps3.video_frame_generator(video)
+
+    embedded_video = os.path.join(VID_DIR, my_video)
+    embedded_gen = ps3.video_frame_generator(embedded_video)
+
+    image = image_gen.__next__()
+    h, w, d = image.shape
+
+    output_prefix = "ps3-6-a"
+
+    out_path = "ar_{}-{}".format(output_prefix[4:], video_file)
+    video_out = mp4_video_writer(out_path, (w, h), fps)
+
+    # video_frame_to_embed = embedded_gen.__next__()
+    # frame_num = 1
+    # while video_frame_to_embed is not None:
+    #     frame_num += 1
+    #     # todo remove
+    #     video_frame_to_embed = embedded_gen.__next__()
+    #     cv2.imwrite('out/frame_in/fram' + str(frame_num) + '.png', video_frame_to_embed)
+    #     print("Processing fame {}".format(frame_num))
+
+
+
+
+    # Optional template image
+    template = cv2.imread(os.path.join(IMG_DIR, "template.jpg"))
+
+    first = embedded_gen.__next__()
+    video_frame_to_embed = first
+    is_repeat = False
+    output_counter = 1
+
+    frame_num = 1
+
+    while image is not None:
+
+        # todo remove
+        cv2.imwrite('out/frame_in/fram' + str(frame_num) + '.png', image)
+        print("Processing fame {}".format(frame_num))
+
+        if video_frame_to_embed is not None and not is_repeat:
+            video_frame_to_embed = embedded_gen.__next__()
+
+        if video_frame_to_embed is None:
+            video_frame_to_embed = first
+            is_repeat = True
+
+        src_points = ps3.get_corners_list(video_frame_to_embed)
+
+        markers = ps3.find_markers(image, template, fram_num=frame_num)
+
+        homography = ps3.find_four_point_transform(src_points, markers)
+        image = ps3.project_imageA_onto_imageB(video_frame_to_embed, image, homography)
+
+        # for marker in markers:
+        #     mark_location(image, marker)
+
+        frame_id = frame_ids[(output_counter - 1) % 3]
+
+        if frame_num == frame_id:
+            out_str = output_prefix + "-{}.png".format(output_counter)
+            save_image(out_str, image)
+            output_counter += 1
+
+        video_out.write(image)
+
+        image = image_gen.__next__()
+
+        frame_num += 1
+
+    video_out.release()
+
 
 if __name__ == '__main__':
     print("--- Problem Set 3 ---")
@@ -283,9 +392,9 @@ if __name__ == '__main__':
 
     # part_1()
     # part_2()
-    part_3()
+    # part_3()
     # part_4_a()
     # part_4_b()
     # part_5_a()
-    # part_5_b()
+    part_5_b()
     # part_6()
