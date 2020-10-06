@@ -185,7 +185,7 @@ def reduce_image(image):
     # np.ceil()
     h, w = image.shape
 
-    kernel = np.array([0.05, 0.25, 0.4, 0.25, 0.05])
+    kernel = np.array([1/16, 1/4, 3/8, 1/4, 1/16])
     kernel = np.outer(kernel, kernel)
 
     filter_result = cv2.filter2D(image.astype(float), -1, kernel=kernel, borderType=cv2.BORDER_REFLECT101)
@@ -193,7 +193,6 @@ def reduce_image(image):
     down_sampled_image_result = filter_result[0:h+1: 2, 0:w + 1: 2]
 
     return down_sampled_image_result
-
 
 
 def gaussian_pyramid(image, levels):
@@ -288,17 +287,13 @@ def expand_image(image):
     h, w = image.shape
 
     image_new = np.zeros((h * 2, w * 2)).astype(float)
-    # for i in range(h):
-    #     image_new[i*2][0:w*2 + 1:2] = image[i]
-    image_new[0 : h*2 + 1 : 2][0:w*2 + 1:2] = image
+    image_new[0 : h*2 + 1 : 2, 0:w*2 + 1:2] = image
 
-    kernel = np.array([0.05, 0.25, 0.4, 0.25, 0.05])
+    kernel = np.array([1/8, 1/2, 3/4, 1/2, 1/8])
     kernel = np.outer(kernel, kernel)
-    blurred = 4 * cv2.filter2D(image_new, -1, kernel=kernel, borderType=cv2.BORDER_REFLECT101)
+    filtered = cv2.filter2D(image_new, -1, kernel=kernel, borderType=cv2.BORDER_REFLECT101)
 
-    return blurred
-
-    # raise NotImplementedError
+    return filtered
 
 
 def laplacian_pyramid(g_pyr):
@@ -312,8 +307,21 @@ def laplacian_pyramid(g_pyr):
     Returns:
         list: Laplacian pyramid, with l_pyr[-1] = g_pyr[-1].
     """
+    l_pyr = []
 
-    raise NotImplementedError
+    for i in range(len(g_pyr) - 1):
+        large = g_pyr[i]
+        h_expected, w_expected = large.shape
+        small = g_pyr[i+1]
+        small_expanded = expand_image(small)
+        # truncate if size does not match up
+        small_expanded = small_expanded[0:h_expected, 0:w_expected]
+        laplacian = large - small_expanded
+        l_pyr.append(laplacian)
+
+    l_pyr.append(g_pyr[len(g_pyr) - 1])
+
+    return l_pyr
 
 
 def warp(image, U, V, interpolation, border_mode):
