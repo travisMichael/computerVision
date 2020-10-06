@@ -101,18 +101,21 @@ def optic_flow_lk(img_a, img_b, k_size, k_type, sigma=1):
     det_threshold = 0.01
 
     # https://docs.opencv.org/3.4/d2/d2c/tutorial_sobel_derivatives.html
-    k = 5
+    k = 3
     grad_x = cv2.Sobel(img_a, cv2.CV_64F, 1, 0, ksize=k, scale=1.0/8.0, borderType=cv2.BORDER_DEFAULT)
     grad_y = cv2.Sobel(img_a, cv2.CV_64F, 0, 1, ksize=k, scale=1.0/8.0, borderType=cv2.BORDER_DEFAULT)
     grad_t = (img_b - img_a) * -1
 
-    debug_image(grad_x, "grad_x_" + str(k))
-    debug_image(grad_y, "grad_y_" + str(k))
+    # debug_image(grad_x, "grad_x_" + str(k))
+    # debug_image(grad_y, "grad_y_" + str(k))
 
-    k = 59
+    k = k_size
     grad_y_y = np.multiply(grad_y, grad_y)
     grad_x_x = np.multiply(grad_x, grad_x)
     grad_x_y = np.multiply(grad_x, grad_y)
+    # grad_y_y_sum = cv2.filter2D(grad_y_y, -1, np.ones((k, k), dtype=np.float) / (k**2))
+    # grad_x_x_sum = cv2.filter2D(grad_x_x, -1, np.ones((k, k), dtype=np.float) / (k**2))
+    # grad_x_y_sum = cv2.filter2D(grad_x_y, -1, np.ones((k, k), dtype=np.float) / (k**2))
     grad_y_y_sum = cv2.filter2D(grad_y_y, -1, np.ones((k, k), dtype=np.float))
     grad_x_x_sum = cv2.filter2D(grad_x_x, -1, np.ones((k, k), dtype=np.float))
     grad_x_y_sum = cv2.filter2D(grad_x_y, -1, np.ones((k, k), dtype=np.float))
@@ -130,8 +133,10 @@ def optic_flow_lk(img_a, img_b, k_size, k_type, sigma=1):
 
     grad_t_x = np.multiply(grad_x, grad_t)
     grad_t_y = np.multiply(grad_y, grad_t)
-    grad_t_x_sum = cv2.filter2D(grad_t_x, -1, np.ones((k, k)))
-    grad_t_y_sum = cv2.filter2D(grad_t_y, -1, np.ones((k, k)))
+    # grad_t_x_sum = cv2.filter2D(grad_t_x, -1, np.ones((k, k), dtype=np.float) / (k**2))
+    # grad_t_y_sum = cv2.filter2D(grad_t_y, -1, np.ones((k, k), dtype=np.float) / (k**2))
+    grad_t_x_sum = cv2.filter2D(grad_t_x, -1, np.ones((k, k), dtype=np.float))
+    grad_t_y_sum = cv2.filter2D(grad_t_y, -1, np.ones((k, k), dtype=np.float))
 
     b_top = np.expand_dims(grad_t_x_sum, axis=2)
     b_bottom = np.expand_dims(grad_t_y_sum, axis=2)
@@ -139,10 +144,10 @@ def optic_flow_lk(img_a, img_b, k_size, k_type, sigma=1):
     b = np.stack((b_top, b_bottom), axis=2)
 
     x = np.matmul(m_inverse, b)
-    u_1 = np.squeeze(x[:, :, 0])
-    v_1 = np.squeeze(x[:, :, 1])
+    u = np.squeeze(x[:, :, 0])
+    v = np.squeeze(x[:, :, 1])
 
-    return u_1, v_1
+    return u, v
 
 
 def debug_image(image, name):
@@ -177,8 +182,18 @@ def reduce_image(image):
         numpy.array: output image with half the shape, same type as the
                      input image.
     """
+    # np.ceil()
+    h, w = image.shape
 
-    raise NotImplementedError
+    kernel = np.array([0.05, 0.25, 0.4, 0.25, 0.05])
+    kernel = np.outer(kernel, kernel)
+
+    filter_result = cv2.filter2D(image.astype(float), -1, kernel=kernel, borderType=cv2.BORDER_REFLECT101)
+    # using numpy index slicing: from:to:step
+    down_sampled_image_result = filter_result[0:h+1: 2, 0:w + 1: 2]
+
+    return down_sampled_image_result
+
 
 
 def gaussian_pyramid(image, levels):
@@ -201,8 +216,18 @@ def gaussian_pyramid(image, levels):
     Returns:
         list: Gaussian pyramid, list of numpy.arrays.
     """
+    pyramid_layers = []
 
-    raise NotImplementedError
+    current_image = np.copy(image).astype(float)
+    pyramid_layers.append(current_image)
+    # cv2.imwrite("out/pyr_0.png", current_image*255)
+
+    for i in range(levels - 1):
+        current_image = reduce_image(current_image)
+        pyramid_layers.append(current_image)
+        # cv2.imwrite("out/pyr_" + str(i+1) + ".png", current_image*255)
+
+    return pyramid_layers
 
 
 def create_combined_img(img_list):
@@ -223,8 +248,21 @@ def create_combined_img(img_list):
         numpy.array: output image with the pyramid images stacked
                      from left to right.
     """
+    h_final = img_list[0].shape[0]
+    w_final = 0
+    for image in img_list:
+        _, w = image.shape
+        w_final += w
 
-    raise NotImplementedError
+    final_image = np.zeros((h_final, w_final), dtype=np.float) + 255
+    current_w = 0
+
+    for image in img_list:
+        h, w = image.shape
+        final_image[0:h, current_w:current_w+w] = normalize_and_scale(image)
+        current_w += w
+
+    return final_image
 
 
 def expand_image(image):
@@ -247,8 +285,20 @@ def expand_image(image):
         numpy.array: same type as 'image' with the doubled height and
                      width.
     """
+    h, w = image.shape
 
-    raise NotImplementedError
+    image_new = np.zeros((h * 2, w * 2)).astype(float)
+    # for i in range(h):
+    #     image_new[i*2][0:w*2 + 1:2] = image[i]
+    image_new[0 : h*2 + 1 : 2][0:w*2 + 1:2] = image
+
+    kernel = np.array([0.05, 0.25, 0.4, 0.25, 0.05])
+    kernel = np.outer(kernel, kernel)
+    blurred = 4 * cv2.filter2D(image_new, -1, kernel=kernel, borderType=cv2.BORDER_REFLECT101)
+
+    return blurred
+
+    # raise NotImplementedError
 
 
 def laplacian_pyramid(g_pyr):
