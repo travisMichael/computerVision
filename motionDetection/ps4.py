@@ -102,12 +102,19 @@ def optic_flow_lk(img_a, img_b, k_size, k_type, sigma=1):
 
     # https://docs.opencv.org/3.4/d2/d2c/tutorial_sobel_derivatives.html
     k = 3
+    img_a = cv2.GaussianBlur(img_a,(5,5),0)
+    img_b = cv2.GaussianBlur(img_b,(5,5),0)
     grad_x = cv2.Sobel(img_a, cv2.CV_64F, 1, 0, ksize=k, scale=1.0/8.0, borderType=cv2.BORDER_DEFAULT)
     grad_y = cv2.Sobel(img_a, cv2.CV_64F, 0, 1, ksize=k, scale=1.0/8.0, borderType=cv2.BORDER_DEFAULT)
     grad_t = (img_b - img_a) * -1
+    # grad_x = cv2.GaussianBlur(grad_x,(5,5),0)
+    # grad_y = cv2.GaussianBlur(grad_y,(5,5),0)
+    # grad_t = cv2.GaussianBlur(grad_t,(5,5),0)
 
-    # debug_image(grad_x, "grad_x_" + str(k))
-    # debug_image(grad_y, "grad_y_" + str(k))
+    debug_image(abs(grad_x)*4, "grad_x_" + str(k))
+    debug_image(abs(grad_y)*4, "grad_y_" + str(k))
+    # borderType = cv2.BORDER_DEFAULT
+    borderType = cv2.BORDER_REFLECT101
 
     k = k_size
     grad_y_y = np.multiply(grad_y, grad_y)
@@ -116,9 +123,9 @@ def optic_flow_lk(img_a, img_b, k_size, k_type, sigma=1):
     # grad_y_y_sum = cv2.filter2D(grad_y_y, -1, np.ones((k, k), dtype=np.float) / (k**2))
     # grad_x_x_sum = cv2.filter2D(grad_x_x, -1, np.ones((k, k), dtype=np.float) / (k**2))
     # grad_x_y_sum = cv2.filter2D(grad_x_y, -1, np.ones((k, k), dtype=np.float) / (k**2))
-    grad_y_y_sum = cv2.filter2D(grad_y_y, -1, np.ones((k, k), dtype=np.float))
-    grad_x_x_sum = cv2.filter2D(grad_x_x, -1, np.ones((k, k), dtype=np.float))
-    grad_x_y_sum = cv2.filter2D(grad_x_y, -1, np.ones((k, k), dtype=np.float))
+    grad_y_y_sum = cv2.filter2D(grad_y_y, -1, np.ones((k, k), dtype=np.float), borderType=borderType)
+    grad_x_x_sum = cv2.filter2D(grad_x_x, -1, np.ones((k, k), dtype=np.float), borderType=borderType)
+    grad_x_y_sum = cv2.filter2D(grad_x_y, -1, np.ones((k, k), dtype=np.float), borderType=borderType)
 
     m_top = np.stack((grad_x_x_sum, grad_x_y_sum), axis=2)
     m_bottom = np.stack((grad_x_y_sum, grad_y_y_sum), axis=2)
@@ -135,8 +142,8 @@ def optic_flow_lk(img_a, img_b, k_size, k_type, sigma=1):
     grad_t_y = np.multiply(grad_y, grad_t)
     # grad_t_x_sum = cv2.filter2D(grad_t_x, -1, np.ones((k, k), dtype=np.float) / (k**2))
     # grad_t_y_sum = cv2.filter2D(grad_t_y, -1, np.ones((k, k), dtype=np.float) / (k**2))
-    grad_t_x_sum = cv2.filter2D(grad_t_x, -1, np.ones((k, k), dtype=np.float))
-    grad_t_y_sum = cv2.filter2D(grad_t_y, -1, np.ones((k, k), dtype=np.float))
+    grad_t_x_sum = cv2.filter2D(grad_t_x, -1, np.ones((k, k), dtype=np.float), borderType=borderType)
+    grad_t_y_sum = cv2.filter2D(grad_t_y, -1, np.ones((k, k), dtype=np.float), borderType=borderType)
 
     b_top = np.expand_dims(grad_t_x_sum, axis=2)
     b_bottom = np.expand_dims(grad_t_y_sum, axis=2)
@@ -146,6 +153,9 @@ def optic_flow_lk(img_a, img_b, k_size, k_type, sigma=1):
     x = np.matmul(m_inverse, b)
     u = np.squeeze(x[:, :, 0])
     v = np.squeeze(x[:, :, 1])
+
+    u = cv2.GaussianBlur(u,(5,5),0)
+    v = cv2.GaussianBlur(v,(5,5),0)
 
     return u, v
 
@@ -311,11 +321,10 @@ def laplacian_pyramid(g_pyr):
 
     for i in range(len(g_pyr) - 1):
         large = g_pyr[i]
-        h_expected, w_expected = large.shape
         small = g_pyr[i+1]
         small_expanded = expand_image(small)
         # truncate if size does not match up
-        small_expanded = small_expanded[0:h_expected, 0:w_expected]
+        small_expanded = truncate_expansion(small_expanded, large)
         laplacian = large - small_expanded
         l_pyr.append(laplacian)
 
@@ -347,8 +356,32 @@ def warp(image, U, V, interpolation, border_mode):
         numpy.array: warped image, such that
                      warped[y, x] = image[y + V[y, x], x + U[y, x]]
     """
+    h, w = image.shape
 
-    raise NotImplementedError
+    index_map = np.indices((h, w))
+    map_y = index_map[0]
+    map_x = index_map[1]
+
+    map_x_plus_displacement = map_x + U
+    map_y_plus_displacement = map_y + V
+
+    # map_x_plus_displacement[map_x_plus_displacement < 0] = map_x[map_x_plus_displacement < 0]
+    # map_x_plus_displacement[map_x_plus_displacement > w-1] = map_x[map_x_plus_displacement > w-1]
+    #
+    # map_y_plus_displacement[map_y_plus_displacement < 0] = map_y[map_y_plus_displacement < 0]
+    # map_y_plus_displacement[map_y_plus_displacement > h-1] = map_y[map_y_plus_displacement > h-1]
+
+    image_copy = np.copy(image)
+
+    dst = cv2.remap(image_copy.astype(np.float32), map_x_plus_displacement.astype(np.float32), map_y_plus_displacement.astype(np.float32), interpolation, borderMode=border_mode)
+    # dst[dst==0] = image_copy[dst==0]
+    return dst
+
+
+def truncate_expansion(expanded, next_level):
+    h_expected, w_expected = next_level.shape
+    expanded = expanded[0:h_expected, 0:w_expected]
+    return expanded
 
 
 def hierarchical_lk(img_a, img_b, levels, k_size, k_type, sigma, interpolation,
@@ -379,4 +412,180 @@ def hierarchical_lk(img_a, img_b, levels, k_size, k_type, sigma, interpolation,
                              same size and type as U.
     """
 
-    raise NotImplementedError
+    i = levels - 1
+    g_pyr_a = gaussian_pyramid(img_a, levels)
+    g_pyr_b = gaussian_pyramid(img_b, levels)
+    level_i_a = g_pyr_a[i]
+    level_i_b = g_pyr_b[i]
+    # next_level_a = g_pyr_a[i-1]
+    h, w = level_i_a.shape
+
+    u = np.zeros((h, w), dtype=np.float)
+    v = np.zeros((h,w), dtype=np.float)
+
+    levels_k = []
+    for level in range(levels):
+        if level == 0:
+            levels_k.append(7)
+        elif level == 1:
+            levels_k.append(13)
+        else:
+            levels_k.append(19)
+
+    while i >= 1:
+        k_size = levels_k[levels - i - 1]
+        next_level_b = g_pyr_b[i-1]
+
+        # cv2.imwrite("out/level_i_a.png", normalize_and_scale(level_i_a))
+        # cv2.imwrite("out/level_i_b.png", normalize_and_scale(level_i_b))
+
+        level_i_u, level_i_v = optic_flow_lk(level_i_a, level_i_b, k_size, 0)
+        level_i_u_expanded = expand_image(level_i_u) * 2.0
+        level_i_v_expanded = expand_image(level_i_v) * 2.0
+        level_i_u_expanded = truncate_expansion(level_i_u_expanded, next_level_b)
+        level_i_v_expanded = truncate_expansion(level_i_v_expanded, next_level_b)
+
+        u = expand_image(u) * 2.0
+        v = expand_image(v) * 2.0
+        u = truncate_expansion(u, next_level_b)
+        v = truncate_expansion(v, next_level_b)
+
+        u += level_i_u_expanded
+        v += level_i_v_expanded
+
+        i -= 1
+        # cv2.imwrite("out/next_level_b.png", normalize_and_scale(next_level_b))
+        # cv2.imwrite("out/next_level_a.png", normalize_and_scale(next_level_a))
+        level_i_b = warp(next_level_b, u, v, cv2.INTER_CUBIC, cv2.BORDER_REFLECT)
+        # cv2.imwrite("out/warped_next.png", normalize_and_scale(level_i_b.astype(np.float64)))
+        # level_i_b = g_pyr_b[i]
+        level_i_a = g_pyr_a[i]
+
+    level_zero_u, level_zero_v = optic_flow_lk(level_i_a, level_i_b, 19, 0)
+    u += level_zero_u
+    v += level_zero_v
+
+    return u, v
+
+
+def hierarchical_lk_1(img_a, img_b, levels, k_size, k_type, sigma, interpolation,
+                    border_mode):
+    """Computes the optic flow using Hierarchical Lucas-Kanade.
+
+    This method should use reduce_image(), expand_image(), warp(),
+    and optic_flow_lk().
+
+    Args:
+        img_a (numpy.array): grayscale floating-point image, values in
+                             [0.0, 1.0].
+        img_b (numpy.array): grayscale floating-point image, values in
+                             [0.0, 1.0].
+        levels (int): Number of levels.
+        k_size (int): parameter to be passed to optic_flow_lk.
+        k_type (str): parameter to be passed to optic_flow_lk.
+        sigma (float): parameter to be passed to optic_flow_lk.
+        interpolation (Inter): parameter to be passed to warp.
+        border_mode (BorderType): parameter to be passed to warp.
+
+    Returns:
+        tuple: 2-element tuple containing:
+            U (numpy.array): raw displacement (in pixels) along X-axis,
+                             same size as the input images,
+                             floating-point type.
+            V (numpy.array): raw displacement (in pixels) along Y-axis,
+                             same size and type as U.
+    """
+
+    i = levels - 1
+    g_pyr_a = gaussian_pyramid(img_a, levels)
+    g_pyr_b = gaussian_pyramid(img_b, levels)
+    level_i_a = g_pyr_a[i]
+    level_i_b = g_pyr_b[i]
+    next_level_a = g_pyr_a[i-1]
+    next_level_b = g_pyr_b[i-1]
+    h, w = next_level_a.shape
+
+    u = np.zeros((h, w), dtype=np.float)
+    v = np.zeros((h,w), dtype=np.float)
+
+    cv2.imwrite("out/level_i_a.png", normalize_and_scale(level_i_a))
+    cv2.imwrite("out/level_i_b.png", normalize_and_scale(level_i_b))
+
+    level_i_u, level_i_v = optic_flow_lk(level_i_a, level_i_b, 17, 0)
+    # quiver(level_i_u, level_i_v, "out/level_i_a_quiver.png", scale=5, stride=10)
+    # quiver(u, v, "out/level_i_b_quiver.png", scale=3, stride=10)
+
+    level_i_expanded_u = expand_image(level_i_u)
+    level_i_expanded_v = expand_image(level_i_v)
+
+    level_i_u_doubled = np.multiply(level_i_expanded_u, 2.0)
+    level_i_v_doubled = np.multiply(level_i_expanded_v, 2.0)
+
+    level_i_u_doubled = truncate_expansion(level_i_u_doubled, next_level_a)
+    level_i_v_doubled = truncate_expansion(level_i_v_doubled, next_level_a)
+
+    u += level_i_u_doubled
+    v += level_i_v_doubled
+
+    i -= 1
+    cv2.imwrite("out/next_level_b.png", normalize_and_scale(next_level_b))
+    cv2.imwrite("out/next_level_a.png", normalize_and_scale(next_level_a))
+    # You may try different values # cv2.INTER_LINEAR
+    interpolation = cv2.INTER_CUBIC
+    border_mode = cv2.BORDER_REFLECT101
+    level_i_b = warp(next_level_b, u, v, cv2.INTER_CUBIC, cv2.BORDER_REFLECT)
+    cv2.imwrite("out/warped_next.png", normalize_and_scale(level_i_b.astype(np.float64)))
+    cv2.imwrite("out/difference.png", normalize_and_scale((level_i_b - next_level_a).astype(np.float64)))
+    # level_i_b = g_pyr_b[i]
+    level_i_a = g_pyr_a[i]
+
+    # -------------------------------------------------------------------------------------------
+    next_level_a = g_pyr_a[i-1]
+    next_level_b = g_pyr_b[i-1]
+
+    level_i_u, level_i_v = optic_flow_lk(level_i_a, level_i_b, 15, 0)
+
+    level_i_expanded_u = expand_image(level_i_u)
+    level_i_expanded_v = expand_image(level_i_v)
+
+    level_i_u_doubled = np.multiply(level_i_expanded_u, 2.0)
+    level_i_v_doubled = np.multiply(level_i_expanded_v, 2.0)
+
+    level_i_u_doubled = truncate_expansion(level_i_u_doubled, next_level_a)
+    level_i_v_doubled = truncate_expansion(level_i_v_doubled, next_level_a)
+
+    u = expand_image(u) * 2.0
+    v = expand_image(v) * 2.0
+    u = truncate_expansion(u, next_level_a) + level_i_u_doubled
+    v = truncate_expansion(v, next_level_a) + level_i_v_doubled
+
+    cv2.imwrite("out/next_level_b_1.png", normalize_and_scale(next_level_b))
+    cv2.imwrite("out/next_level_a_1.png", normalize_and_scale(next_level_a))
+
+    level_i_b = warp(next_level_b, u, v, cv2.INTER_CUBIC, cv2.BORDER_REFLECT)
+    cv2.imwrite("out/warped_next_2.png", normalize_and_scale(level_i_b.astype(np.float64)))
+
+    # -------------------------------------------------------------------------------------------
+    level_i_a = g_pyr_a[0]
+
+    level_i_u, level_i_v = optic_flow_lk(level_i_a, level_i_b, 21, 0)
+
+    u += level_i_u
+    v += level_i_v
+
+    return u, v
+
+
+def quiver(u, v, file, scale, stride, color=(0, 255, 0)):
+
+    img_out = np.zeros((v.shape[0], u.shape[1], 3), dtype=np.uint8)
+
+    for y in range(0, v.shape[0], stride):
+
+        for x in range(0, u.shape[1], stride):
+
+            cv2.line(img_out, (x, y), (x + int(u[y, x] * scale),
+                                       y + int(v[y, x] * scale)), color, 1)
+            cv2.circle(img_out, (x + int(u[y, x] * scale),
+                                 y + int(v[y, x] * scale)), 1, color, 1)
+    cv2.imwrite(file, img_out)
