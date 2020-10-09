@@ -102,8 +102,8 @@ def optic_flow_lk(img_a, img_b, k_size, k_type, sigma=1):
 
     # https://docs.opencv.org/3.4/d2/d2c/tutorial_sobel_derivatives.html
     k = 3
-    img_a = cv2.GaussianBlur(img_a,(5,5),0)
-    img_b = cv2.GaussianBlur(img_b,(5,5),0)
+    # img_a = cv2.GaussianBlur(img_a,(5,5),0)
+    # img_b = cv2.GaussianBlur(img_b,(5,5),0)
     grad_x = cv2.Sobel(img_a, cv2.CV_64F, 1, 0, ksize=k, scale=1.0/8.0, borderType=cv2.BORDER_DEFAULT)
     grad_y = cv2.Sobel(img_a, cv2.CV_64F, 0, 1, ksize=k, scale=1.0/8.0, borderType=cv2.BORDER_DEFAULT)
     grad_t = (img_b - img_a) * -1
@@ -384,6 +384,23 @@ def truncate_expansion(expanded, next_level):
     return expanded
 
 
+# this function was taken from the ps3.py that was given by the OMSCS program at Georgia Tech
+def video_frame_generator(filename):
+    video = cv2.VideoCapture(filename)
+
+    # Do not edit this while loop
+    while video.isOpened():
+        ret, frame = video.read()
+
+        if ret:
+            yield frame
+        else:
+            break
+
+    video.release()
+    yield None
+
+
 def hierarchical_lk(img_a, img_b, levels, k_size, k_type, sigma, interpolation,
                     border_mode):
     """Computes the optic flow using Hierarchical Lucas-Kanade.
@@ -423,6 +440,23 @@ def hierarchical_lk(img_a, img_b, levels, k_size, k_type, sigma, interpolation,
     u = np.zeros((h, w), dtype=np.float)
     v = np.zeros((h,w), dtype=np.float)
 
+    k_levels = []
+
+    for pyr_image in g_pyr_a:
+        h, w = pyr_image.shape
+        if h+w < 25:
+            k_levels.append(5)
+        elif h+w < 40:
+            k_levels.append(7)
+        elif h+w < 55:
+            k_levels.append(9)
+        elif h+w < 90:
+            k_levels.append(11)
+        elif h+w < 160:
+            k_levels.append(25)
+        else:
+            k_levels.append(39)
+
     levels_k = []
     for level in range(levels):
         if level == 0:
@@ -433,11 +467,12 @@ def hierarchical_lk(img_a, img_b, levels, k_size, k_type, sigma, interpolation,
             levels_k.append(19)
 
     while i >= 1:
-        k_size = levels_k[levels - i - 1]
+        # k_size = k_levels[levels - i - 1]
+        k_size = k_levels[i]
         next_level_b = g_pyr_b[i-1]
 
-        # cv2.imwrite("out/level_i_a.png", normalize_and_scale(level_i_a))
-        # cv2.imwrite("out/level_i_b.png", normalize_and_scale(level_i_b))
+        cv2.imwrite("out/level_i_a.png", normalize_and_scale(level_i_a))
+        cv2.imwrite("out/level_i_b.png", normalize_and_scale(level_i_b))
 
         level_i_u, level_i_v = optic_flow_lk(level_i_a, level_i_b, k_size, 0)
         level_i_u_expanded = expand_image(level_i_u) * 2.0
@@ -457,7 +492,7 @@ def hierarchical_lk(img_a, img_b, levels, k_size, k_type, sigma, interpolation,
         # cv2.imwrite("out/next_level_b.png", normalize_and_scale(next_level_b))
         # cv2.imwrite("out/next_level_a.png", normalize_and_scale(next_level_a))
         level_i_b = warp(next_level_b, u, v, cv2.INTER_CUBIC, cv2.BORDER_REFLECT)
-        # cv2.imwrite("out/warped_next.png", normalize_and_scale(level_i_b.astype(np.float64)))
+        cv2.imwrite("out/warped_next.png", normalize_and_scale(level_i_b.astype(np.float64)))
         # level_i_b = g_pyr_b[i]
         level_i_a = g_pyr_a[i]
 
@@ -466,126 +501,3 @@ def hierarchical_lk(img_a, img_b, levels, k_size, k_type, sigma, interpolation,
     v += level_zero_v
 
     return u, v
-
-
-def hierarchical_lk_1(img_a, img_b, levels, k_size, k_type, sigma, interpolation,
-                    border_mode):
-    """Computes the optic flow using Hierarchical Lucas-Kanade.
-
-    This method should use reduce_image(), expand_image(), warp(),
-    and optic_flow_lk().
-
-    Args:
-        img_a (numpy.array): grayscale floating-point image, values in
-                             [0.0, 1.0].
-        img_b (numpy.array): grayscale floating-point image, values in
-                             [0.0, 1.0].
-        levels (int): Number of levels.
-        k_size (int): parameter to be passed to optic_flow_lk.
-        k_type (str): parameter to be passed to optic_flow_lk.
-        sigma (float): parameter to be passed to optic_flow_lk.
-        interpolation (Inter): parameter to be passed to warp.
-        border_mode (BorderType): parameter to be passed to warp.
-
-    Returns:
-        tuple: 2-element tuple containing:
-            U (numpy.array): raw displacement (in pixels) along X-axis,
-                             same size as the input images,
-                             floating-point type.
-            V (numpy.array): raw displacement (in pixels) along Y-axis,
-                             same size and type as U.
-    """
-
-    i = levels - 1
-    g_pyr_a = gaussian_pyramid(img_a, levels)
-    g_pyr_b = gaussian_pyramid(img_b, levels)
-    level_i_a = g_pyr_a[i]
-    level_i_b = g_pyr_b[i]
-    next_level_a = g_pyr_a[i-1]
-    next_level_b = g_pyr_b[i-1]
-    h, w = next_level_a.shape
-
-    u = np.zeros((h, w), dtype=np.float)
-    v = np.zeros((h,w), dtype=np.float)
-
-    cv2.imwrite("out/level_i_a.png", normalize_and_scale(level_i_a))
-    cv2.imwrite("out/level_i_b.png", normalize_and_scale(level_i_b))
-
-    level_i_u, level_i_v = optic_flow_lk(level_i_a, level_i_b, 17, 0)
-    # quiver(level_i_u, level_i_v, "out/level_i_a_quiver.png", scale=5, stride=10)
-    # quiver(u, v, "out/level_i_b_quiver.png", scale=3, stride=10)
-
-    level_i_expanded_u = expand_image(level_i_u)
-    level_i_expanded_v = expand_image(level_i_v)
-
-    level_i_u_doubled = np.multiply(level_i_expanded_u, 2.0)
-    level_i_v_doubled = np.multiply(level_i_expanded_v, 2.0)
-
-    level_i_u_doubled = truncate_expansion(level_i_u_doubled, next_level_a)
-    level_i_v_doubled = truncate_expansion(level_i_v_doubled, next_level_a)
-
-    u += level_i_u_doubled
-    v += level_i_v_doubled
-
-    i -= 1
-    cv2.imwrite("out/next_level_b.png", normalize_and_scale(next_level_b))
-    cv2.imwrite("out/next_level_a.png", normalize_and_scale(next_level_a))
-    # You may try different values # cv2.INTER_LINEAR
-    interpolation = cv2.INTER_CUBIC
-    border_mode = cv2.BORDER_REFLECT101
-    level_i_b = warp(next_level_b, u, v, cv2.INTER_CUBIC, cv2.BORDER_REFLECT)
-    cv2.imwrite("out/warped_next.png", normalize_and_scale(level_i_b.astype(np.float64)))
-    cv2.imwrite("out/difference.png", normalize_and_scale((level_i_b - next_level_a).astype(np.float64)))
-    # level_i_b = g_pyr_b[i]
-    level_i_a = g_pyr_a[i]
-
-    # -------------------------------------------------------------------------------------------
-    next_level_a = g_pyr_a[i-1]
-    next_level_b = g_pyr_b[i-1]
-
-    level_i_u, level_i_v = optic_flow_lk(level_i_a, level_i_b, 15, 0)
-
-    level_i_expanded_u = expand_image(level_i_u)
-    level_i_expanded_v = expand_image(level_i_v)
-
-    level_i_u_doubled = np.multiply(level_i_expanded_u, 2.0)
-    level_i_v_doubled = np.multiply(level_i_expanded_v, 2.0)
-
-    level_i_u_doubled = truncate_expansion(level_i_u_doubled, next_level_a)
-    level_i_v_doubled = truncate_expansion(level_i_v_doubled, next_level_a)
-
-    u = expand_image(u) * 2.0
-    v = expand_image(v) * 2.0
-    u = truncate_expansion(u, next_level_a) + level_i_u_doubled
-    v = truncate_expansion(v, next_level_a) + level_i_v_doubled
-
-    cv2.imwrite("out/next_level_b_1.png", normalize_and_scale(next_level_b))
-    cv2.imwrite("out/next_level_a_1.png", normalize_and_scale(next_level_a))
-
-    level_i_b = warp(next_level_b, u, v, cv2.INTER_CUBIC, cv2.BORDER_REFLECT)
-    cv2.imwrite("out/warped_next_2.png", normalize_and_scale(level_i_b.astype(np.float64)))
-
-    # -------------------------------------------------------------------------------------------
-    level_i_a = g_pyr_a[0]
-
-    level_i_u, level_i_v = optic_flow_lk(level_i_a, level_i_b, 21, 0)
-
-    u += level_i_u
-    v += level_i_v
-
-    return u, v
-
-
-def quiver(u, v, file, scale, stride, color=(0, 255, 0)):
-
-    img_out = np.zeros((v.shape[0], u.shape[1], 3), dtype=np.uint8)
-
-    for y in range(0, v.shape[0], stride):
-
-        for x in range(0, u.shape[1], stride):
-
-            cv2.line(img_out, (x, y), (x + int(u[y, x] * scale),
-                                       y + int(v[y, x] * scale)), color, 1)
-            cv2.circle(img_out, (x + int(u[y, x] * scale),
-                                 y + int(v[y, x] * scale)), 1, color, 1)
-    cv2.imwrite(file, img_out)
