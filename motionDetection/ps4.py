@@ -102,30 +102,33 @@ def optic_flow_lk(img_a, img_b, k_size, k_type, sigma=1):
 
     # https://docs.opencv.org/3.4/d2/d2c/tutorial_sobel_derivatives.html
     k = 3
-    # img_a = cv2.GaussianBlur(img_a,(5,5),0)
-    # img_b = cv2.GaussianBlur(img_b,(5,5),0)
-    grad_x = cv2.Sobel(img_a, cv2.CV_64F, 1, 0, ksize=k, scale=1.0/8.0, borderType=cv2.BORDER_DEFAULT)
-    grad_y = cv2.Sobel(img_a, cv2.CV_64F, 0, 1, ksize=k, scale=1.0/8.0, borderType=cv2.BORDER_DEFAULT)
+    s = sigma
+    # img_a = cv2.GaussianBlur(img_a,(35,35),10)
+    # img_b = cv2.GaussianBlur(img_b,(35,35),10)
+
+    debug_image(img_a, "med_x_" + str(k))
+    debug_image(img_b, "med_y_" + str(k))
+    grad_x = cv2.Sobel(img_a, cv2.CV_64F, 1, 0, ksize=k, scale=1.0/8.0, borderType=cv2.BORDER_REFLECT101)
+    grad_y = cv2.Sobel(img_a, cv2.CV_64F, 0, 1, ksize=k, scale=1.0/8.0, borderType=cv2.BORDER_REFLECT101)
     grad_t = (img_b - img_a) * -1
-    # grad_x = cv2.GaussianBlur(grad_x,(5,5),0)
-    # grad_y = cv2.GaussianBlur(grad_y,(5,5),0)
-    # grad_t = cv2.GaussianBlur(grad_t,(5,5),0)
+    if k_type == "gaussian":
+        grad_x = cv2.GaussianBlur(grad_x,(35,35),20)
+        grad_y = cv2.GaussianBlur(grad_y,(35,35),20)
+        grad_t = cv2.GaussianBlur(grad_t,(35,35),20)
 
-    debug_image(abs(grad_x)*4, "grad_x_" + str(k))
-    debug_image(abs(grad_y)*4, "grad_y_" + str(k))
-    # borderType = cv2.BORDER_DEFAULT
-    borderType = cv2.BORDER_REFLECT101
+    debug_image(abs(grad_x)/abs(grad_x).max(), "grad_x_" + str(k))
+    debug_image(abs(grad_y)/abs(grad_y).max(), "grad_y_" + str(k))
 
-    k = k_size
+    gaussian_kernel = cv2.getGaussianKernel(k_size, sigma)
+    gaussian_kernel = np.outer(gaussian_kernel, gaussian_kernel)
+    gaussian_kernel = gaussian_kernel / (gaussian_kernel.max())
+
     grad_y_y = np.multiply(grad_y, grad_y)
     grad_x_x = np.multiply(grad_x, grad_x)
     grad_x_y = np.multiply(grad_x, grad_y)
-    # grad_y_y_sum = cv2.filter2D(grad_y_y, -1, np.ones((k, k), dtype=np.float) / (k**2))
-    # grad_x_x_sum = cv2.filter2D(grad_x_x, -1, np.ones((k, k), dtype=np.float) / (k**2))
-    # grad_x_y_sum = cv2.filter2D(grad_x_y, -1, np.ones((k, k), dtype=np.float) / (k**2))
-    grad_y_y_sum = cv2.filter2D(grad_y_y, -1, np.ones((k, k), dtype=np.float), borderType=borderType)
-    grad_x_x_sum = cv2.filter2D(grad_x_x, -1, np.ones((k, k), dtype=np.float), borderType=borderType)
-    grad_x_y_sum = cv2.filter2D(grad_x_y, -1, np.ones((k, k), dtype=np.float), borderType=borderType)
+    grad_y_y_sum = custom_filter(grad_y_y, k_type, k_size, gaussian_kernel)
+    grad_x_x_sum = custom_filter(grad_x_x, k_type, k_size, gaussian_kernel)
+    grad_x_y_sum = custom_filter(grad_x_y, k_type, k_size, gaussian_kernel)
 
     m_top = np.stack((grad_x_x_sum, grad_x_y_sum), axis=2)
     m_bottom = np.stack((grad_x_y_sum, grad_y_y_sum), axis=2)
@@ -140,10 +143,8 @@ def optic_flow_lk(img_a, img_b, k_size, k_type, sigma=1):
 
     grad_t_x = np.multiply(grad_x, grad_t)
     grad_t_y = np.multiply(grad_y, grad_t)
-    # grad_t_x_sum = cv2.filter2D(grad_t_x, -1, np.ones((k, k), dtype=np.float) / (k**2))
-    # grad_t_y_sum = cv2.filter2D(grad_t_y, -1, np.ones((k, k), dtype=np.float) / (k**2))
-    grad_t_x_sum = cv2.filter2D(grad_t_x, -1, np.ones((k, k), dtype=np.float), borderType=borderType)
-    grad_t_y_sum = cv2.filter2D(grad_t_y, -1, np.ones((k, k), dtype=np.float), borderType=borderType)
+    grad_t_x_sum = custom_filter(grad_t_x, k_type, k_size, gaussian_kernel)
+    grad_t_y_sum = custom_filter(grad_t_y, k_type, k_size, gaussian_kernel)
 
     b_top = np.expand_dims(grad_t_x_sum, axis=2)
     b_bottom = np.expand_dims(grad_t_y_sum, axis=2)
@@ -154,10 +155,15 @@ def optic_flow_lk(img_a, img_b, k_size, k_type, sigma=1):
     u = np.squeeze(x[:, :, 0])
     v = np.squeeze(x[:, :, 1])
 
-    u = cv2.GaussianBlur(u,(5,5),0)
-    v = cv2.GaussianBlur(v,(5,5),0)
-
     return u, v
+
+
+def custom_filter(matrix_in, k_type, k_size, gaussian_k):
+    border_type = cv2.BORDER_REFLECT101
+    if k_type == "gaussian":
+        return cv2.filter2D(matrix_in, -1, gaussian_k, borderType=border_type)
+
+    return cv2.filter2D(matrix_in, -1, np.ones((k_size, k_size), dtype=np.float), borderType=border_type)
 
 
 def debug_image(image, name):
@@ -441,21 +447,23 @@ def hierarchical_lk(img_a, img_b, levels, k_size, k_type, sigma, interpolation,
     v = np.zeros((h,w), dtype=np.float)
 
     k_levels = []
+    sigma = [1.0, 2.0, 2.0, 2.0, 2.0, 2.0]
 
     for pyr_image in g_pyr_a:
         h, w = pyr_image.shape
         if h+w < 25:
             k_levels.append(5)
+
         elif h+w < 40:
-            k_levels.append(7)
-        elif h+w < 55:
             k_levels.append(9)
+        elif h+w < 55:
+            k_levels.append(17)
         elif h+w < 90:
-            k_levels.append(11)
+            k_levels.append(35)
         elif h+w < 160:
-            k_levels.append(25)
+            k_levels.append(45)
         else:
-            k_levels.append(39)
+            k_levels.append(45)
 
     levels_k = []
     for level in range(levels):
@@ -469,16 +477,20 @@ def hierarchical_lk(img_a, img_b, levels, k_size, k_type, sigma, interpolation,
     while i >= 1:
         # k_size = k_levels[levels - i - 1]
         k_size = k_levels[i]
+        s = sigma[levels - i - 1]
         next_level_b = g_pyr_b[i-1]
 
         cv2.imwrite("out/level_i_a.png", normalize_and_scale(level_i_a))
         cv2.imwrite("out/level_i_b.png", normalize_and_scale(level_i_b))
 
-        level_i_u, level_i_v = optic_flow_lk(level_i_a, level_i_b, k_size, 0)
+        level_i_u, level_i_v = optic_flow_lk(level_i_a, level_i_b, k_size, s)
         level_i_u_expanded = expand_image(level_i_u) * 2.0
         level_i_v_expanded = expand_image(level_i_v) * 2.0
         level_i_u_expanded = truncate_expansion(level_i_u_expanded, next_level_b)
         level_i_v_expanded = truncate_expansion(level_i_v_expanded, next_level_b)
+
+        u_v = quiver(level_i_u_expanded, level_i_v_expanded, scale=3, stride=10)
+        cv2.imwrite("out/hlk_quiver.png", u_v)
 
         u = expand_image(u) * 2.0
         v = expand_image(v) * 2.0
@@ -496,8 +508,23 @@ def hierarchical_lk(img_a, img_b, levels, k_size, k_type, sigma, interpolation,
         # level_i_b = g_pyr_b[i]
         level_i_a = g_pyr_a[i]
 
-    level_zero_u, level_zero_v = optic_flow_lk(level_i_a, level_i_b, 19, 0)
+    level_zero_u, level_zero_v = optic_flow_lk(level_i_a, level_i_b, 55, 0)
     u += level_zero_u
     v += level_zero_v
 
     return u, v
+
+
+def quiver(u, v, scale, stride, color=(0, 255, 0)):
+
+    img_out = np.zeros((v.shape[0], u.shape[1], 3), dtype=np.uint8)
+
+    for y in range(0, v.shape[0], stride):
+
+        for x in range(0, u.shape[1], stride):
+
+            cv2.line(img_out, (x, y), (x + int(u[y, x] * scale),
+                                       y + int(v[y, x] * scale)), color, 1)
+            cv2.circle(img_out, (x + int(u[y, x] * scale),
+                                 y + int(v[y, x] * scale)), 1, color, 1)
+    return img_out
