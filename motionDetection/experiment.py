@@ -68,10 +68,14 @@ def scale_u_and_v(u, v, level, pyr):
                              pyr[0].shape
     """
 
-    #for
-
-    # TODO: Your code here
-    raise NotImplementedError
+    while level > 0:
+        next_image = pyr[level-1]
+        u = ps4.expand_image(u) * 2
+        v = ps4.expand_image(v) * 2
+        u = ps4.truncate_expansion(u, next_image)
+        v = ps4.truncate_expansion(v, next_image)
+        level -= 1
+    return u, v
 
 
 def part_1a():
@@ -89,7 +93,7 @@ def part_1a():
     sigma = 5
     u, v = ps4.optic_flow_lk(shift_0, shift_r2, k_size, k_type, sigma)
 
-    q = 1.0
+    q = 0.5
     u = u / q
     v = v / q
 
@@ -105,7 +109,7 @@ def part_1a():
     sigma = 0
     u, v = ps4.optic_flow_lk(shift_0, shift_r5_u5, k_size, k_type, sigma)
 
-    q = .75
+    q = .5
     u = u / q
     v = v / q
 
@@ -165,7 +169,7 @@ def part_1b():
     shift_r20 = cv2.GaussianBlur(shift_r20,(35,35),10)
     u, v = ps4.optic_flow_lk(shift_0, shift_r20, k_size, k_type, sigma)
 
-    q = 4.5
+    q = 3.5
     u = u / q
     v = v / q
 
@@ -174,12 +178,14 @@ def part_1b():
     cv2.imwrite(os.path.join(output_dir, "ps4-1-b-2.png"), u_v)
 
     k_size = 181
-    k_type = "gaussian"
+    k_type = "ave"
     sigma = 60
-    shift_r40 = cv2.GaussianBlur(shift_r40,(35,35),10)
+    shift_0 = cv2.GaussianBlur(shift_0,(25,25),15)
+    shift_r40 = cv2.GaussianBlur(shift_r40,(25,25),15)
+    shift_r40 = cv2.GaussianBlur(shift_r40,(25,25),15)
     u, v = ps4.optic_flow_lk(shift_0, shift_r40, k_size, k_type, sigma)
 
-    q = 4.0
+    q = 2.0
     u = u / q
     v = v / q
 
@@ -214,12 +220,12 @@ def part_3a_1():
     yos_img_02 = cv2.imread(
         os.path.join(input_dir, 'DataSeq1', 'yos_img_02.jpg'), 0) / 255.
 
-    levels = 1  # Define the number of pyramid levels
+    levels = 2  # Define the number of pyramid levels
     yos_img_01_g_pyr = ps4.gaussian_pyramid(yos_img_01, levels)
     yos_img_02_g_pyr = ps4.gaussian_pyramid(yos_img_02, levels)
 
-    level_id = 0  # TODO: Select the level number (or id) you wish to use
-    k_size = 5 # TODO: Select a kernel size
+    level_id = 1  # TODO: Select the level number (or id) you wish to use
+    k_size = 35 # TODO: Select a kernel size
     k_type = ""  # TODO: Select a kernel type
     sigma = 0  # TODO: Select a sigma value if you are using a gaussian kernel
     u, v = ps4.optic_flow_lk(yos_img_01_g_pyr[level_id],
@@ -234,7 +240,7 @@ def part_3a_1():
 
     diff_yos_img_01_02 = yos_img_01 - yos_img_02_warped
     cv2.imwrite(os.path.join(output_dir, "ps4-3-a-1.png"),
-                ps4.normalize_and_scale(diff_yos_img))
+                ps4.normalize_and_scale(diff_yos_img_01_02))
 
 
 def part_3a_2():
@@ -243,14 +249,14 @@ def part_3a_2():
     yos_img_03 = cv2.imread(
         os.path.join(input_dir, 'DataSeq1', 'yos_img_03.jpg'), 0) / 255.
 
-    levels = 1  # Define the number of pyramid levels
+    levels = 2  # Define the number of pyramid levels
     yos_img_02_g_pyr = ps4.gaussian_pyramid(yos_img_02, levels)
     yos_img_03_g_pyr = ps4.gaussian_pyramid(yos_img_03, levels)
 
-    level_id = 1 # TODO: Select the level number (or id) you wish to use
-    k_size = 0 # TODO: Select a kernel size
-    k_type = ""  # TODO: Select a kernel type
-    sigma = 0 # TODO: Select a sigma value if you are using a gaussian kernel
+    level_id = 1
+    k_size = 75
+    k_type = ""
+    sigma = 0
     u, v = ps4.optic_flow_lk(yos_img_02_g_pyr[level_id],
                              yos_img_03_g_pyr[level_id],
                              k_size, k_type, sigma)
@@ -276,32 +282,49 @@ def part_4a():
     shift_r40 = cv2.imread(os.path.join(input_dir, 'TestSeq',
                                         'ShiftR40.png'), 0) / 255.
 
-    levels = 4  # TODO: Define the number of levels
+    levels = 2  # TODO: Define the number of levels
     k_size = 0  # TODO: Select a kernel size
-    k_type = ""  # TODO: Select a kernel type
-    sigma = 0  # TODO: Select a sigma value if you are using a gaussian kernel
+    k_type = "gaussian"  # TODO: Select a kernel type
+    sigma = 30  # TODO: Select a sigma value if you are using a gaussian kernel
     interpolation = cv2.INTER_CUBIC  # You may try different values
     border_mode = cv2.BORDER_REFLECT101  # You may try different values
 
-    u10, v10 = ps4.hierarchical_lk(shift_0, shift_r10, levels, k_size, k_type,
+    shift_0 = cv2.GaussianBlur(shift_0,(35,35),10)
+    shift_r10 = cv2.GaussianBlur(shift_r10,(35,35),10)
+
+    u, v = ps4.hierarchical_lk(shift_0, shift_r10, levels, k_size, k_type,
                                    sigma, interpolation, border_mode)
+    q = 5.0
+    u = u / q
+    v = v / q
     #
-    u_v = quiver(u10, v10, scale=3, stride=10)
+    u_v = quiver(u, v, scale=3, stride=10)
     cv2.imwrite(os.path.join(output_dir, "ps4-4-a-1.png"), u_v)
     #
     # # You may want to try different parameters for the remaining function
     # # calls.
-    levels = 5
-    u20, v20 = ps4.hierarchical_lk(shift_0, shift_r20, levels, k_size, k_type,
+    levels = 3
+    shift_r20 = cv2.GaussianBlur(shift_r20,(35,35),10)
+    u, v = ps4.hierarchical_lk(shift_0, shift_r20, levels, k_size, k_type,
                                    sigma, interpolation, border_mode)
 
-    u_v = quiver(u20, v20, scale=3, stride=10)
+    q = 10.0
+    u = u / q
+    v = v / q
+
+    u_v = quiver(u, v, scale=3, stride=10)
     cv2.imwrite(os.path.join(output_dir, "ps4-4-a-2.png"), u_v)
 
-    levels = 5
-    u40, v40 = ps4.hierarchical_lk(shift_0, shift_r40, levels, k_size, k_type,
+    #
+
+    levels = 3
+    shift_r40 = cv2.GaussianBlur(shift_r40,(35,35),10)
+    u, v = ps4.hierarchical_lk(shift_0, shift_r40, levels, k_size, k_type,
                                    sigma, interpolation, border_mode)
-    u_v = quiver(u40, v40, scale=3, stride=10)
+    q = 15.0
+    u = u / q
+    v = v / q
+    u_v = quiver(u, v, scale=3, stride=10)
     cv2.imwrite(os.path.join(output_dir, "ps4-4-a-3.png"), u_v)
 
 
@@ -311,15 +334,19 @@ def part_4b():
     urban_img_02 = cv2.imread(
         os.path.join(input_dir, 'Urban2', 'urban02.png'), 0) / 255.
 
-    levels = 6  # TODO: Define the number of levels
-    k_size = 0  # TODO: Select a kernel size
-    k_type = ""  # TODO: Select a kernel type
-    sigma = 0  # TODO: Select a sigma value if you are using a gaussian kernel
+    levels = 6
+    k_size = 0
+    k_type = ""
+    sigma = 0
     interpolation = cv2.INTER_CUBIC  # You may try different values
     border_mode = cv2.BORDER_REFLECT101  # You may try different values
 
     u, v = ps4.hierarchical_lk(urban_img_01, urban_img_02, levels, k_size,
                                k_type, sigma, interpolation, border_mode)
+
+    # q = 5.0
+    # u = u / q
+    # v = v / q
 
     u_v = quiver(u, v, scale=3, stride=10)
     cv2.imwrite(os.path.join(output_dir, "ps4-4-b-1.png"), u_v)
@@ -328,6 +355,8 @@ def part_4b():
     border_mode = cv2.BORDER_REFLECT101  # You may try different values
     urban_img_02_warped = ps4.warp(urban_img_02, u, v, interpolation,
                                    border_mode)
+
+    # cv2.imwrite(os.path.join(output_dir, "out/warp.png"), ps4.normalize_and_scale(urban_img_02_warped.astype(np.float64)))
 
     diff_img = urban_img_01 - urban_img_02_warped
     cv2.imwrite(os.path.join(output_dir, "ps4-4-b-2.png"),
@@ -361,20 +390,20 @@ def part_5a():
                                    sigma, interpolation, border_mode)
 
     u_v = quiver(u10, v10, scale=3, stride=10)
-    cv2.imwrite(os.path.join(output_dir, "out/ps4-5-a-1.png"), u_v)
+    # cv2.imwrite(os.path.join(output_dir, "out/ps4-5-a-1.png"), u_v)
 
-    cv2.imwrite("out/I_0.png", shift_0*255)
+    # cv2.imwrite("out/I_0.png", shift_0*255)
 
     I_t_02 = interpolate_frames(shift_0, shift_r10, 0.2, u10, v10)
-    cv2.imwrite("out/I_t_02.png", ps4.normalize_and_scale(I_t_02.astype(np.float)))
+    # cv2.imwrite("out/I_t_02.png", ps4.normalize_and_scale(I_t_02.astype(np.float)))
     I_t_04 = interpolate_frames(shift_0, shift_r10, 0.4, u10, v10)
-    cv2.imwrite("out/I_t_04.png", ps4.normalize_and_scale(I_t_04.astype(np.float)))
+    # cv2.imwrite("out/I_t_04.png", ps4.normalize_and_scale(I_t_04.astype(np.float)))
     I_t_06 = interpolate_frames(shift_0, shift_r10, 0.6, u10, v10)
-    cv2.imwrite("out/I_t_06.png", I_t_06.astype(np.float) * 255)
+    # cv2.imwrite("out/I_t_06.png", I_t_06.astype(np.float) * 255)
     I_t_08 = interpolate_frames(shift_0, shift_r10, 0.8, u10, v10)
-    cv2.imwrite("out/I_t_08.png", I_t_08.astype(np.float) * 255)
+    # cv2.imwrite("out/I_t_08.png", I_t_08.astype(np.float) * 255)
 
-    cv2.imwrite("out/I_1.png", shift_r10*255)
+    # cv2.imwrite("out/I_1.png", shift_r10*255)
 
     result = create_2_by_3_image(shift_0, I_t_02, I_t_04, I_t_06, I_t_08, shift_r10)
 
@@ -395,21 +424,6 @@ def create_2_by_3_image(I_1, I_2, I_3, I_4, I_5, I_6):
     image[h+3:h*2+3, w*2+6:w*3+6] = I_6
 
     return image
-
-
-# def interpolate_frames_2(I_0, I_1, t, u, v):
-#     I_1_copy = np.copy(I_1)
-#     I_0_copy = np.copy(I_0)
-#     interpolation = cv2.INTER_CUBIC  # You may try different values
-#     border_mode = cv2.BORDER_REFLECT101  # You may try different values
-#     I_2_warped = ps4.warp(I_1_copy, u, v, interpolation, border_mode) * t
-#     # I_temp = (1-t) * I_0_copy + I_2_warped
-#
-#     I_temp = ps4.warp(I_0_copy, -t*u, -t*v, interpolation, border_mode)
-#
-#     I_t = (1-t) * I_temp + I_2_warped
-#
-#     return I_t
 
 
 def interpolate_frames(I_0, I_1, t, u, v):
@@ -450,18 +464,18 @@ def part_5b():
                                    sigma, interpolation, border_mode)
 
     u_v = quiver(u10, v10, scale=3, stride=10)
-    cv2.imwrite(os.path.join(output_dir, "out/ps4-5-b-1.png"), u_v)
+    # cv2.imwrite(os.path.join(output_dir, "out/ps4-5-b-1.png"), u_v)
 
-    cv2.imwrite("out/I_0.png", shift_0*255)
+    # cv2.imwrite("out/I_0.png", shift_0*255)
     I_t_02 = interpolate_frames(shift_0, shift_r10, 0.2, u10, v10)
-    cv2.imwrite("out/I_t_02.png", ps4.normalize_and_scale(I_t_02.astype(np.float)))
+    # cv2.imwrite("out/I_t_02.png", ps4.normalize_and_scale(I_t_02.astype(np.float)))
     I_t_04 = interpolate_frames(shift_0, shift_r10, 0.4, u10, v10)
-    cv2.imwrite("out/I_t_04.png", ps4.normalize_and_scale(I_t_04.astype(np.float)))
+    # cv2.imwrite("out/I_t_04.png", ps4.normalize_and_scale(I_t_04.astype(np.float)))
     I_t_06 = interpolate_frames(shift_0, shift_r10, 0.6, u10, v10)
-    cv2.imwrite("out/I_t_06.png", I_t_06.astype(np.float) * 255)
+    # cv2.imwrite("out/I_t_06.png", I_t_06.astype(np.float) * 255)
     I_t_08 = interpolate_frames(shift_0, shift_r10, 0.95, u10, v10)
-    cv2.imwrite("out/I_t_08.png", I_t_08.astype(np.float) * 255)
-    cv2.imwrite("out/I_1.png", shift_r10*255)
+    # cv2.imwrite("out/I_t_08.png", I_t_08.astype(np.float) * 255)
+    # cv2.imwrite("out/I_1.png", shift_r10*255)
 
     result = create_2_by_3_image(shift_0, I_t_02, I_t_04, I_t_06, I_t_08, shift_r10)
 
@@ -478,16 +492,16 @@ def part_5b():
     u_v = quiver(u10, v10, scale=3, stride=10)
     cv2.imwrite(os.path.join(output_dir, "out/ps4-5-b-2.png"), u_v)
 
-    cv2.imwrite("out/I_0.png", shift_0*255)
+    # cv2.imwrite("out/I_0.png", shift_0*255)
     I_t_02 = interpolate_frames(shift_0, shift_r10, 0.2, u10, v10)
-    cv2.imwrite("out/I_t_02.png", ps4.normalize_and_scale(I_t_02.astype(np.float)))
+    # cv2.imwrite("out/I_t_02.png", ps4.normalize_and_scale(I_t_02.astype(np.float)))
     I_t_04 = interpolate_frames(shift_0, shift_r10, 0.4, u10, v10)
-    cv2.imwrite("out/I_t_04.png", ps4.normalize_and_scale(I_t_04.astype(np.float)))
+    # cv2.imwrite("out/I_t_04.png", ps4.normalize_and_scale(I_t_04.astype(np.float)))
     I_t_06 = interpolate_frames(shift_0, shift_r10, 0.6, u10, v10)
-    cv2.imwrite("out/I_t_06.png", I_t_06.astype(np.float) * 255)
+    # cv2.imwrite("out/I_t_06.png", I_t_06.astype(np.float) * 255)
     I_t_08 = interpolate_frames(shift_0, shift_r10, 0.95, u10, v10)
-    cv2.imwrite("out/I_t_08.png", I_t_08.astype(np.float) * 255)
-    cv2.imwrite("out/I_1.png", shift_r10*255)
+    # cv2.imwrite("out/I_t_08.png", I_t_08.astype(np.float) * 255)
+    # cv2.imwrite("out/I_1.png", shift_r10*255)
 
     result = create_2_by_3_image(shift_0, I_t_02, I_t_04, I_t_06, I_t_08, shift_r10)
 
@@ -503,7 +517,7 @@ def part_6():
     Place all your work in this file and this section.
     """
 
-    video = os.path.join("input_videos", "my_video.mp4")
+    video = os.path.join("input_videos", "ps4-my-video.mp4")
     image_gen = ps4.video_frame_generator(video)
 
     current = image_gen.__next__()
@@ -522,11 +536,6 @@ def part_6():
 
         k_size = 25
         k_type = ""
-        # levels = 4
-        # interpolation = cv2.INTER_CUBIC
-        # border_mode = cv2.BORDER_REFLECT101
-
-        # u, v = ps4.optic_flow_lk(shift_0, shift_r10, k_size, k_type, sigma)
 
         gray_current = cv2.cvtColor(current_resized, cv2.COLOR_BGR2GRAY) / 255
         gray_next = cv2.cvtColor(next_resized, cv2.COLOR_BGR2GRAY) / 255
@@ -535,6 +544,8 @@ def part_6():
             cv2.imwrite("out/current.png", current_resized)
             cv2.imwrite("out/next.png", next_resized)
 
+        gray_current = cv2.GaussianBlur(gray_current,(35,35),10)
+        gray_next = cv2.GaussianBlur(gray_next,(35,35),10)
         u, v = ps4.optic_flow_lk(gray_current, gray_next, k_size, k_type, 0)
 
         u_abs = abs(u)
@@ -567,12 +578,12 @@ def part_6():
 
 
 if __name__ == '__main__':
-    # part_1a()
-    # part_1b()
-    # part_2()
+    part_1a()
+    part_1b()
+    part_2()
     # part_3a_1()
     # part_3a_2()
-    part_4a()
+    # part_4a()
     # part_4b()
     # part_5a()
     # part_5b()

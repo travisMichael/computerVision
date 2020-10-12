@@ -98,7 +98,7 @@ def optic_flow_lk(img_a, img_b, k_size, k_type, sigma=1):
             V (numpy.array): raw displacement (in pixels) along
                              Y-axis, same size and type as U.
     """
-    det_threshold = 0.01
+    det_threshold = 0.000001
 
     # https://docs.opencv.org/3.4/d2/d2c/tutorial_sobel_derivatives.html
     k = 3
@@ -111,10 +111,15 @@ def optic_flow_lk(img_a, img_b, k_size, k_type, sigma=1):
     grad_x = cv2.Sobel(img_a, cv2.CV_64F, 1, 0, ksize=k, scale=1.0/8.0, borderType=cv2.BORDER_REFLECT101)
     grad_y = cv2.Sobel(img_a, cv2.CV_64F, 0, 1, ksize=k, scale=1.0/8.0, borderType=cv2.BORDER_REFLECT101)
     grad_t = (img_b - img_a) * -1
-    if k_type == "gaussian":
-        grad_x = cv2.GaussianBlur(grad_x,(35,35),20)
-        grad_y = cv2.GaussianBlur(grad_y,(35,35),20)
-        grad_t = cv2.GaussianBlur(grad_t,(35,35),20)
+    # if k_type == "gaussian":
+    #     grad_x = cv2.GaussianBlur(grad_x,(35,35),20)
+    #     grad_y = cv2.GaussianBlur(grad_y,(35,35),20)
+    #     grad_t = cv2.GaussianBlur(grad_t,(35,35),20)
+    #
+    # if abs(grad_x).max() < 0.01:
+    #     grad_x *= 5
+    #     grad_y *= 5
+    #     grad_t *= 5
 
     debug_image(abs(grad_x)/abs(grad_x).max(), "grad_x_" + str(k))
     debug_image(abs(grad_y)/abs(grad_y).max(), "grad_y_" + str(k))
@@ -139,6 +144,10 @@ def optic_flow_lk(img_a, img_b, k_size, k_type, sigma=1):
     m_det = abs(m_det)
 
     m_inverse = np.zeros_like(m)
+    det_threshold = np.average(m_det)
+    if k_size < 150:
+        det_threshold = det_threshold / 100
+
     m_inverse[m_det > det_threshold] = np.linalg.inv(m[m_det > det_threshold])
 
     grad_t_x = np.multiply(grad_x, grad_t)
@@ -447,43 +456,59 @@ def hierarchical_lk(img_a, img_b, levels, k_size, k_type, sigma, interpolation,
     v = np.zeros((h,w), dtype=np.float)
 
     k_levels = []
-    sigma = [1.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    sigma = [] # 1.0, 2.0, 2.0, 2.0, 2.0, 2.0
 
-    for pyr_image in g_pyr_a:
-        h, w = pyr_image.shape
-        if h+w < 25:
-            k_levels.append(5)
-
-        elif h+w < 40:
-            k_levels.append(9)
-        elif h+w < 55:
-            k_levels.append(17)
-        elif h+w < 90:
-            k_levels.append(35)
-        elif h+w < 160:
-            k_levels.append(45)
-        else:
-            k_levels.append(45)
-
-    levels_k = []
-    for level in range(levels):
-        if level == 0:
-            levels_k.append(7)
-        elif level == 1:
-            levels_k.append(13)
-        else:
-            levels_k.append(19)
+    if k_type == 'gaussian':
+        for pyr_image in g_pyr_a:
+            h, w = pyr_image.shape
+            if h+w < 25:
+                k_levels.append(5)
+                sigma.append(2)
+            elif h+w < 40:
+                k_levels.append(9)
+                sigma.append(3)
+            elif h+w < 55:
+                k_levels.append(17)
+                sigma.append(5)
+            elif h+w < 90:
+                k_levels.append(21)
+                sigma.append(10)
+            elif h+w < 160:
+                k_levels.append(35)
+                sigma.append(15)
+            else:
+                k_levels.append(95)
+                sigma.append(20)
+    else:
+        for pyr_image in g_pyr_a:
+            h, w = pyr_image.shape
+            if h+w < 25:
+                k_levels.append(7)
+            elif h+w < 40:
+                k_levels.append(15)
+            elif h+w < 55:
+                k_levels.append(21)
+            elif h+w < 90:
+                k_levels.append(39)
+            elif h+w < 160:
+                k_levels.append(59)
+            else:
+                k_levels.append(89)
 
     while i >= 1:
-        # k_size = k_levels[levels - i - 1]
         k_size = k_levels[i]
-        s = sigma[levels - i - 1]
+
         next_level_b = g_pyr_b[i-1]
+        s = 0
+        if k_type == "gaussian":
+            level_i_a = cv2.GaussianBlur(level_i_a,(15,15),10)
+            level_i_b = cv2.GaussianBlur(level_i_b,(15,15),10)
+            s = sigma[i]
 
         cv2.imwrite("out/level_i_a.png", normalize_and_scale(level_i_a))
         cv2.imwrite("out/level_i_b.png", normalize_and_scale(level_i_b))
 
-        level_i_u, level_i_v = optic_flow_lk(level_i_a, level_i_b, k_size, s)
+        level_i_u, level_i_v = optic_flow_lk(level_i_a, level_i_b, k_size, "gaussian", s)
         level_i_u_expanded = expand_image(level_i_u) * 2.0
         level_i_v_expanded = expand_image(level_i_v) * 2.0
         level_i_u_expanded = truncate_expansion(level_i_u_expanded, next_level_b)
@@ -508,7 +533,7 @@ def hierarchical_lk(img_a, img_b, levels, k_size, k_type, sigma, interpolation,
         # level_i_b = g_pyr_b[i]
         level_i_a = g_pyr_a[i]
 
-    level_zero_u, level_zero_v = optic_flow_lk(level_i_a, level_i_b, 55, 0)
+    level_zero_u, level_zero_v = optic_flow_lk(level_i_a, level_i_b, 155, 0)
     u += level_zero_u
     v += level_zero_v
 

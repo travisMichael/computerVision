@@ -129,7 +129,7 @@ class Part2(unittest.TestCase):
 
             g_pyr = ps4.gaussian_pyramid(test_array.copy(), levels=l)
 
-            g_pyr_ref = np.load(INPUT_DIR + f2,encoding = 'latin1')
+            g_pyr_ref = np.load(INPUT_DIR + f2,encoding = 'latin1', allow_pickle=True)
 
             for l in range(len(g_pyr)):
                 correct = np.allclose(g_pyr[l], g_pyr_ref[l], atol=0.1)
@@ -150,11 +150,11 @@ class Part2(unittest.TestCase):
             f1 = input_imgs[i]
             f2 = ref_imgs[i]
 
-            test_array = np.load(INPUT_DIR + f1 , encoding = 'latin1')
+            test_array = np.load(INPUT_DIR + f1 , encoding = 'latin1', allow_pickle=True)
 
             l_pyr = ps4.laplacian_pyramid(test_array)
 
-            l_pyr_ref = np.load(INPUT_DIR + f2,encoding = 'latin1')
+            l_pyr_ref = np.load(INPUT_DIR + f2,encoding = 'latin1', allow_pickle=True)
 
             for l in range(levels[i]):
                 correct = np.allclose(l_pyr[l], l_pyr_ref[l], atol=0.1)
@@ -284,6 +284,7 @@ class Part4(unittest.TestCase):
                         "movement is greater than the allowed amount."
 
             self.assertTrue(check_v, error_msg)
+
 
 if __name__ == "__main__":
     unittest.main()
