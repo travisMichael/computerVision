@@ -19,13 +19,42 @@ class KalmanFilter(object):
             R (numpy.array): Measurement noise array.
         """
         self.state = np.array([init_x, init_y, 0., 0.])  # state
-        raise NotImplementedError
+        self.measurement_noise = R
+        self.process_noise = Q
+        self.covariance_matrix = np.eye(4) * 0.1
+        # measurement matrix
+        self.M = np.array([
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+        ])
+        # transition matrix
+        self.D = np.array([
+            [1, 0, 1, 0],
+            [0, 1, 0, 1],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1]
+        ])
 
     def predict(self):
-        raise NotImplementedError
+        self.state = np.matmul(self.D, self.state)
+        temp = np.matmul(self.D, self.covariance_matrix)
+        self.covariance_matrix = np.matmul(temp, self.D.T) + self.process_noise
 
     def correct(self, meas_x, meas_y):
-        raise NotImplementedError
+        # create measurement vector
+        z = np.zeros((2, 1), dtype=np.float)
+        z[0, 0] = meas_x
+        z[1, 0] = meas_y
+
+        # calculate kalman gain
+        temp = np.matmul(self.M, self.covariance_matrix)
+        inverse = np.linalg.inv(np.matmul(temp, self.M.T) + self.measurement_noise)
+        kalman_gain = np.matmul(self.covariance_matrix, np.matmul(self.M.T, inverse))
+
+        # update state
+        self.state = self.state + np.squeeze(np.matmul(kalman_gain, z - np.expand_dims(np.matmul(self.M, self.state), axis=1)))
+        # update covariance
+        self.covariance_matrix = np.matmul(np.eye(4) - np.matmul(kalman_gain, self.M), self.covariance_matrix)
 
     def process(self, measurement_x, measurement_y):
 
