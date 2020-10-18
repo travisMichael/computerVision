@@ -136,7 +136,17 @@ class ParticleFilter(object):
         self.t_w_2 = int(t_w/2)
         self.motion_variance = 14
         self.z = np.ones(self.num_particles, dtype=np.float) / self.num_particles
+        self.time = 0
         # todo initialize beliefs?
+
+    def get_particle(self, i):
+        x, y = self.particles[i]
+        x = int(x)
+        y = int(y)
+        return x, y
+
+    def increment_time(self):
+        self.time += 1
 
     def get_particles(self):
         """Returns the current particles state.
@@ -208,27 +218,32 @@ class ParticleFilter(object):
     def update_weights(self):
         self.weights = self.z / np.sum(self.z)
 
-    def update_measurement_likelihood(self, frame):
-        # pad the frame border
-        h = frame.shape[0]
-        w = frame.shape[1]
+    def expand_frame(self, frame):
         frame_copy = np.copy(frame)
         expanded_frame = cv2.copyMakeBorder(frame_copy, self.t_h_2, self.t_h_2, self.t_w_2, self.t_w_2, cv2.BORDER_REFLECT)
-        mse = np.zeros_like(self.z)
+        return expanded_frame
+
+    def calculate_mse_error(self, frame):
+        h = frame.shape[0]
+        w = frame.shape[1]
+        expanded_frame = self.expand_frame(frame)
+        mse = np.ones_like(self.z) * 10000
         zeros = np.zeros_like(self.z)
         for i in range(self.particles.shape[0]):
-            x, y = self.particles[i]
-            x = int(x)
-            y = int(y)
+            x, y = self.get_particle(i)
             if x < 0 or x >= w or y < 0 or y >= h:
                 zeros[i] = 1
                 continue
             frame_cutout = expanded_frame[y:y+2*self.t_h_2, x:x+2*self.t_w_2]
             mse[i] = self.get_error_metric(self.template, frame_cutout)
+        return mse, zeros
 
-        # self.z = np.exp(mse/(-2*np.std(mse)))
-        self.z = np.exp(mse/(-20))
-        print(np.std(mse), self.z.min(), self.z.max())
+    def update_measurement_likelihood(self, frame):
+        mse, zeros = self.calculate_mse_error(frame)
+
+        self.z = np.exp(mse/(-2*np.std(mse)))
+        # self.z = np.exp(mse/(-20))
+        # print(np.std(mse), self.z.min(), self.z.max())
         # if particle is out of frame, set probability to zero
         self.z[zeros == 1] = 0.0
 
@@ -244,43 +259,43 @@ class ParticleFilter(object):
 
         return np.sum(x_w), np.sum(y_w)
 
-    def render_best_weights(self, frame_in):
+    # def render_best_weights(self, frame_in):
+    #
+    #     avg = np.average(self.weights)
+    #     std = np.std(self.weights)
+    #     q = np.where(self.weights > avg + std/2)
+    #
+    #     n = q[0].shape[0]
+    #
+    #     # best_particles = np.zeros((n, 2))
+    #     best_particles = self.particles[q]
+    #
+    #     for i in range(n):
+    #         y, x = best_particles[i]
+    #         x = int(x)
+    #         y = int(y)
+    #         cv2.circle(frame_in, (y, x), 2, (0, 0, 255), 2)
+    #
+    #     cv2.imwrite("best.png", frame_in)
 
-        avg = np.average(self.weights)
-        std = np.std(self.weights)
-        q = np.where(self.weights > avg + std/2)
+    # def show_error_function(self, frame):
+    #
+    #     h = frame.shape[0]
+    #     w = frame.shape[1]
+    #     mse_m = np.zeros((h, w), dtype=np.float)
+    #     expanded_frame = cv2.copyMakeBorder(frame, self.t_h_2, self.t_h_2, self.t_w_2, self.t_w_2, cv2.BORDER_REFLECT)
+    #
+    #     for i in range(h):
+    #         for j in range(w):
+    #             frame_cutout = expanded_frame[i:i+2*self.t_w_2, j:j+2*self.t_h_2]
+    #             mse_m[i, j] = self.get_error_metric(self.template, frame_cutout)
+    #
+    #     u = np.exp(mse_m/(-2*np.std(mse_m)))
+    #     u = u / u.max() * 255
+    #     cv2.imwrite("out/error_map.png", u)
+    #     pass
 
-        n = q[0].shape[0]
-
-        # best_particles = np.zeros((n, 2))
-        best_particles = self.particles[q]
-
-        for i in range(n):
-            y, x = best_particles[i]
-            x = int(x)
-            y = int(y)
-            cv2.circle(frame_in, (y, x), 2, (0, 0, 255), 2)
-
-        cv2.imwrite("best.png", frame_in)
-
-    def show_error_function(self, frame):
-
-        h = frame.shape[0]
-        w = frame.shape[1]
-        mse_m = np.zeros((h, w), dtype=np.float)
-        expanded_frame = cv2.copyMakeBorder(frame, self.t_h_2, self.t_h_2, self.t_w_2, self.t_w_2, cv2.BORDER_REFLECT)
-
-        for i in range(h):
-            for j in range(w):
-                frame_cutout = expanded_frame[i:i+2*self.t_w_2, j:j+2*self.t_h_2]
-                mse_m[i, j] = self.get_error_metric(self.template, frame_cutout)
-
-        u = np.exp(mse_m/(-2*np.std(mse_m)))
-        u = u / u.max() * 255
-        cv2.imwrite("out/error_map.png", u)
-        pass
-
-    def process(self, frame, i=0):
+    def process(self, frame):
         """Processes a video frame (image) and updates the filter's state.
 
         Implement the particle filter in this method returning None
@@ -298,29 +313,29 @@ class ParticleFilter(object):
         Returns:
             None.
         """
+        self.increment_time()
         frame = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
         # move particles by gaussian noise
-        self.render(np.copy(frame), "out/frame_0" + str(i) + ".png")
+        self.render(np.copy(frame), "out/frame_" + str(self.time) + "_0.png")
 
         # self.show_error_function(np.copy(frame))
-        self.render(np.copy(frame), "out/frame_1" + str(i) + ".png")
         # likelihood of measurement
         self.update_measurement_likelihood(frame)
         # update weights
         self.update_weights()
-        self.render_best_weights(frame)
+        # self.render_best_weights(frame)
         # resample
         sampled_particles = self.resample_particles()
         self.particles = sampled_particles
-        self.render(np.copy(frame), "out/frame_2" + str(i) + ".png")
+        self.render(np.copy(frame), "out/frame_" + str(self.time) + "_1.png")
         self.diffuse()
-        self.render(np.copy(frame), "out/frame_3" + str(i) + ".png")
+        self.render(np.copy(frame), "out/frame_" + str(self.time) + "_2.png")
 
         # get mean x, mean y etc
         x, y = self.get_mean()
         return x, y
 
-    def render(self, frame_in, file=None, render=False):
+    def render(self, frame_in, file=None, render=True):
         """Visualizes current particle filter state.
 
         This method may not be called for all frames, so don't do any model
@@ -355,9 +370,7 @@ class ParticleFilter(object):
         y_weighted_mean = 0
 
         for i in range(self.num_particles):
-            x, y = self.particles[i]
-            x = int(x)
-            y = int(y)
+            x, y = self.get_particle(i)
             cv2.circle(frame_in, (x, y), 2, (0, 0, 255), 2)
             x_weighted_mean += self.particles[i, 0] * self.weights[i]
             y_weighted_mean += self.particles[i, 1] * self.weights[i]
@@ -390,6 +403,26 @@ class AppearanceModelPF(ParticleFilter):
         # The way to do it is:
         # self.some_parameter_name = kwargs.get('parameter_name', default_value)
 
+    def get_best_patch(self, frame):
+
+        mse, _ = self.calculate_mse_error(frame)
+        expanded_frame = self.expand_frame(frame)
+
+        best_mse_index = np.argmin(mse)
+        x, y = self.get_particle(best_mse_index)
+        best_patch = expanded_frame[y:y+2*self.t_h_2, x:x+2*self.t_w_2]
+        return best_patch
+
+    def update_template(self, frame, write=False):
+        previous_template = self.template
+        best_patch = self.get_best_patch(frame)
+        new_template = self.alpha * best_patch + (1 - self.alpha) * self.template
+        self.template = new_template
+        if write:
+            cv2.imwrite("out/best_template/t_" + str(self.time) + ".png", best_patch)
+            cv2.imwrite("out/template/t_" + str(self.time) + ".png", self.template)
+            cv2.imwrite("out/previous_template/t_" + str(self.time) + ".png", previous_template)
+
     def process(self, frame):
         """Processes a video frame (image) and updates the filter's state.
 
@@ -403,7 +436,11 @@ class AppearanceModelPF(ParticleFilter):
         Returns:
             None.
         """
-        raise NotImplementedError
+        gray_frame = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+        self.update_template(gray_frame, write=True)
+        x, y = super(AppearanceModelPF, self).process(frame)
+        return x, y
+        # raise NotImplementedError
 
 
 class MDParticleFilter(AppearanceModelPF):
