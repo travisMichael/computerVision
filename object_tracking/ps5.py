@@ -122,6 +122,8 @@ class ParticleFilter(object):
         self.frame = frame
         h = frame.shape[0]
         w = frame.shape[1]
+        self.h = h
+        self.w = w
         # Initialize your particles array. Read the docstring. (x, y)
         self.particles = np.random.uniform(size=(self.num_particles, 2))
         self.particles[:, 0] = self.particles[:, 0] * w
@@ -134,7 +136,10 @@ class ParticleFilter(object):
         t_w = template.shape[1]
         self.t_h_2 = int(t_h/2)
         self.t_w_2 = int(t_w/2)
-        self.motion_variance = 14
+        self.motion_variance = 13
+        self.d = -20
+        if h + w > 610:
+            self.motion_variance = 20
         self.z = np.ones(self.num_particles, dtype=np.float) / self.num_particles
         self.time = 0
         # todo initialize beliefs?
@@ -223,6 +228,17 @@ class ParticleFilter(object):
         expanded_frame = cv2.copyMakeBorder(frame_copy, self.t_h_2, self.t_h_2, self.t_w_2, self.t_w_2, cv2.BORDER_REFLECT)
         return expanded_frame
 
+    def get_cutout_bounds(self):
+        h = self.template.shape[0]
+        w = self.template.shape[1]
+        y_bound = 2*self.t_h_2
+        x_bound = 2*self.t_w_2
+        if h % 2 == 1:
+            y_bound += 1
+        if w % 2 == 1:
+            x_bound += 1
+        return x_bound, y_bound
+
     def calculate_mse_error(self, frame):
         h = frame.shape[0]
         w = frame.shape[1]
@@ -233,23 +249,37 @@ class ParticleFilter(object):
             x, y = self.get_particle(i)
             if x < 0 or x >= w or y < 0 or y >= h:
                 zeros[i] = 1
-                continue
-            frame_cutout = expanded_frame[y:y+2*self.t_h_2, x:x+2*self.t_w_2]
+                # continue
+            x_bound, y_bound = self.get_cutout_bounds()
+            frame_cutout = expanded_frame[y:y+y_bound, x:x+x_bound]
             mse[i] = self.get_error_metric(self.template, frame_cutout)
         return mse, zeros
 
     def update_measurement_likelihood(self, frame):
         mse, zeros = self.calculate_mse_error(frame)
 
-        self.z = np.exp(mse/(-2*np.std(mse)))
+        self.z = np.exp(mse/(-1*np.std(mse)))
         # self.z = np.exp(mse/(-20))
+        print(mse.min(), mse.max(), np.std(mse))
+        self.z = np.exp(mse/(self.d))
         # print(np.std(mse), self.z.min(), self.z.max())
         # if particle is out of frame, set probability to zero
         self.z[zeros == 1] = 0.0
+        self.z = self.z / np.sum(self.z)
+
+    def round_particles(self):
+        self.particles[self.particles < 0] = 0
+        x = self.particles[:,0]
+        y = self.particles[:,1]
+        x[x > self.w-1] = self.w-1
+        y[y > self.h-1] = self.h-1
+        self.particles[:,0] = x
+        self.particles[:,1] = y
 
     def diffuse(self):
         dynamics_matrix = np.random.uniform(low=-1*self.motion_variance, high=self.motion_variance, size=(self.num_particles, 2))
         self.particles = self.particles + dynamics_matrix
+        self.round_particles()
 
     def get_mean(self):
         x = self.particles[:, 0]
@@ -335,7 +365,7 @@ class ParticleFilter(object):
         x, y = self.get_mean()
         return x, y
 
-    def render(self, frame_in, file=None, render=True):
+    def render(self, frame_in, file=None, render=False):
         """Visualizes current particle filter state.
 
         This method may not be called for all frames, so don't do any model
@@ -397,6 +427,7 @@ class AppearanceModelPF(ParticleFilter):
         super(AppearanceModelPF, self).__init__(frame, template, **kwargs)  # call base class constructor
 
         self.alpha = kwargs.get('alpha')  # required by the autograder
+        self.d = -500
         # If you want to add more parameters, make sure you set a default value so that
         # your test doesn't fail the autograder because of an unknown or None value.
         #
@@ -410,7 +441,8 @@ class AppearanceModelPF(ParticleFilter):
 
         best_mse_index = np.argmin(mse)
         x, y = self.get_particle(best_mse_index)
-        best_patch = expanded_frame[y:y+2*self.t_h_2, x:x+2*self.t_w_2]
+        x_bound, y_bound = self.get_cutout_bounds()
+        best_patch = expanded_frame[y:y+y_bound, x:x+x_bound]
         return best_patch
 
     def update_template(self, frame, write=False):
