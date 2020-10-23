@@ -116,39 +116,51 @@ class ParticleFilter(object):
         # The way to do it is:
         # self.some_parameter_name = kwargs.get('parameter_name', default_value)
 
-        template = cv2.cvtColor(template,cv2.COLOR_BGR2GRAY)
-        frame = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+        # template = cv2.cvtColor(template,cv2.COLOR_BGR2GRAY)
+        # frame = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
         self.template = template
+        self.original_template = template
         self.frame = frame
         h = frame.shape[0]
         w = frame.shape[1]
         self.h = h
         self.w = w
         # Initialize your particles array. Read the docstring. (x, y)
-        self.particles = np.random.uniform(size=(self.num_particles, 2))
+        self.particles = np.random.uniform(size=(self.num_particles, 3))
         self.particles[:, 0] = self.particles[:, 0] * w
         self.particles[:, 1] = self.particles[:, 1] * h
+        self.particles[:, 2] = 1.0
 
         # Initialize your weights array. Read the docstring.
+        self.in_template_adjust_mode = False
         self.weights = np.ones(self.num_particles, dtype=np.float) / self.num_particles
         # Initialize any other components you may need when designing your filter.
         t_h = template.shape[0]
         t_w = template.shape[1]
+        self.t_h = t_h
+        self.t_w = t_w
         self.t_h_2 = int(t_h/2)
         self.t_w_2 = int(t_w/2)
-        self.motion_variance = 13
         self.d = -20
+        self.motion_variance = 3 # 13
         if h + w > 610:
-            self.motion_variance = 20
+            self.motion_variance = 3 # 20
         self.z = np.ones(self.num_particles, dtype=np.float) / self.num_particles
         self.time = 0
+        self.min_mse = 100000.0
+        self.current_mse = -1
+        self.is_occluded = False
+        self.previous_templates = [1, 2, 3, 4, 5, 6, 7]
+        self.template_error_size = 50
+        self.template_error = [1000]*self.template_error_size
+        self.complete_update = False
         # todo initialize beliefs?
 
     def get_particle(self, i):
-        x, y = self.particles[i]
+        x, y, t_size = self.particles[i]
         x = int(x)
         y = int(y)
-        return x, y
+        return x, y, t_size
 
     def increment_time(self):
         self.time += 1
@@ -179,14 +191,21 @@ class ParticleFilter(object):
         Returns:
             float: similarity value.
         """
+        template = template.astype(np.float)
+        frame_cutout = frame_cutout.astype(np.float)
         m = frame_cutout.shape[0]
         n = frame_cutout.shape[1]
         if template.shape[0] != frame_cutout.shape[0] or template.shape[1] != frame_cutout.shape[1]:
             raise Exception
-        diff = template - frame_cutout
-        squared = diff ** 2
-        sum = np.sum(squared) / (m * n)
-        return sum
+
+        mse = 0.0
+        for i in range(3):
+            diff = template[:,:,i] - frame_cutout[:,:,i]
+            squared = diff ** 2
+            mse += np.sum(squared) / (m * n)
+            pass
+
+        return mse
 
     def resample_particles(self):
         """Returns a new set of particles
@@ -210,57 +229,115 @@ class ParticleFilter(object):
 
         sorted_sample_generators = np.sort(sample_generators)
 
-        particle_samples = np.zeros((n, 2), dtype=np.float)
+        particle_samples = np.zeros_like(self.particles, dtype=np.float)
+        weights = np.zeros_like(self.weights)
         cyclic_weights_index = 0
         for i in range(n):
             sample_generator = sorted_sample_generators[i]
             while sample_generator > cyclic_weights[cyclic_weights_index]:
                 cyclic_weights_index += 1
             particle_samples[i] = self.particles[cyclic_weights_index]
+            weights[i] = self.weights[cyclic_weights_index]
 
-        return particle_samples
+        return particle_samples, weights
 
     def update_weights(self):
-        self.weights = self.z / np.sum(self.z)
+        self.weights *= self.z / np.sum(self.z)
+        self.weights = self.weights / np.sum(self.weights)
 
-    def expand_frame(self, frame):
+    """
+    Will return true if particle distribution is tight, meaning that
+    the particles are likely tracking the object to track. Otherwise, returns false
+    """
+    def is_tracking(self):
+        x_std, y_std = self.particle_distibution()
+        if x_std + y_std < 50:
+            return True
+        return False
+
+    def expand_frame(self, frame, adjusted_template):
+        t_h_2 = int(adjusted_template.shape[0] / 2)
+        t_w_2 = int(adjusted_template.shape[1] / 2)
         frame_copy = np.copy(frame)
-        expanded_frame = cv2.copyMakeBorder(frame_copy, self.t_h_2, self.t_h_2, self.t_w_2, self.t_w_2, cv2.BORDER_REFLECT)
+        expanded_frame = cv2.copyMakeBorder(frame_copy, t_h_2, t_h_2, t_w_2, t_w_2, cv2.BORDER_REFLECT)
         return expanded_frame
 
-    def get_cutout_bounds(self):
-        h = self.template.shape[0]
-        w = self.template.shape[1]
-        y_bound = 2*self.t_h_2
-        x_bound = 2*self.t_w_2
-        if h % 2 == 1:
-            y_bound += 1
-        if w % 2 == 1:
-            x_bound += 1
+    # def expand_frame(self, frame):
+    #     frame_copy = np.copy(frame)
+    #     expanded_frame = cv2.copyMakeBorder(frame_copy, self.t_h_2, self.t_h_2, self.t_w_2, self.t_w_2, cv2.BORDER_REFLECT)
+    #     return expanded_frame
+
+    def get_adjusted_template(self, template_size):
+        h = int(self.t_h * template_size)
+        w = int(self.t_w * template_size)
+        adjusted_template = cv2.resize(np.copy(self.template), (w, h))
+        return adjusted_template
+        # y_bound = 2*self.t_h_2
+        # x_bound = 2*self.t_w_2
+        # if h % 2 == 1:
+        #     y_bound += 1
+        # if w % 2 == 1:
+        #     x_bound += 1
+        # return x_bound, y_bound
+
+    def get_cutout_bounds(self, adjusted_template):
+        y_bound = adjusted_template.shape[0]
+        x_bound = adjusted_template.shape[1]
         return x_bound, y_bound
+        # y_bound = 2*self.t_h_2
+        # x_bound = 2*self.t_w_2
+        # if h % 2 == 1:
+        #     y_bound += 1
+        # if w % 2 == 1:
+        #     x_bound += 1
+        # return x_bound, y_bound
+
+    # def get_cutout_bounds(self, template_size):
+    #     h = self.template.shape[0]
+    #     w = self.template.shape[1]
+    #     y_bound = 2*self.t_h_2
+    #     x_bound = 2*self.t_w_2
+    #     if h % 2 == 1:
+    #         y_bound += 1
+    #     if w % 2 == 1:
+    #         x_bound += 1
+    #     return x_bound, y_bound
 
     def calculate_mse_error(self, frame):
         h = frame.shape[0]
         w = frame.shape[1]
-        expanded_frame = self.expand_frame(frame)
-        mse = np.ones_like(self.z) * 10000
+
+        adjusted_template = np.copy(self.template)
+        expanded_frame = self.expand_frame(frame, adjusted_template)
+
+        mse = np.ones_like(self.z)
         zeros = np.zeros_like(self.z)
         for i in range(self.particles.shape[0]):
-            x, y = self.get_particle(i)
+            x, y, t_size = self.get_particle(i)
             if x < 0 or x >= w or y < 0 or y >= h:
                 zeros[i] = 1
-                # continue
-            x_bound, y_bound = self.get_cutout_bounds()
+            if self.in_template_adjust_mode:
+                adjusted_template = self.get_adjusted_template(t_size)
+                expanded_frame = self.expand_frame(frame, adjusted_template)
+
+            x_bound, y_bound = self.get_cutout_bounds(adjusted_template)
             frame_cutout = expanded_frame[y:y+y_bound, x:x+x_bound]
-            mse[i] = self.get_error_metric(self.template, frame_cutout)
+            mse[i] = self.get_error_metric(adjusted_template, frame_cutout)
+        self.update_min_mse(mse)
         return mse, zeros
+
+    def update_min_mse(self, mse):
+        min_mse = mse.min()
+        self.current_mse = min_mse
+        if min_mse < self.min_mse:
+            self.min_mse = min_mse
 
     def update_measurement_likelihood(self, frame):
         mse, zeros = self.calculate_mse_error(frame)
 
         self.z = np.exp(mse/(-1*np.std(mse)))
         # self.z = np.exp(mse/(-20))
-        print(mse.min(), mse.max(), np.std(mse))
+        # print(mse.min(), mse.max(), np.std(mse))
         self.z = np.exp(mse/(self.d))
         # print(np.std(mse), self.z.min(), self.z.max())
         # if particle is out of frame, set probability to zero
@@ -277,17 +354,24 @@ class ParticleFilter(object):
         self.particles[:,1] = y
 
     def diffuse(self):
-        dynamics_matrix = np.random.uniform(low=-1*self.motion_variance, high=self.motion_variance, size=(self.num_particles, 2))
-        self.particles = self.particles + dynamics_matrix
+        if not self.is_occluded:
+            dynamics_matrix = np.random.uniform(low=-1*self.motion_variance, high=self.motion_variance, size=(self.num_particles, 2))
+        else:
+            dynamics_matrix = np.random.uniform(low=-1, high=1, size=(self.num_particles, 2))
+
+        self.particles[:, 0] += dynamics_matrix[:, 0]
+        self.particles[:, 1] += dynamics_matrix[:, 1]
         self.round_particles()
 
     def get_mean(self):
         x = self.particles[:, 0]
         y = self.particles[:, 1]
+        t_size = self.particles[:, 2]
         x_w = np.multiply(x, self.weights)
         y_w = np.multiply(y, self.weights)
+        t_avg = np.multiply(t_size, self.weights)
 
-        return np.sum(x_w), np.sum(y_w)
+        return np.sum(x_w), np.sum(y_w), np.sum(t_avg)
 
     # def render_best_weights(self, frame_in):
     #
@@ -297,7 +381,6 @@ class ParticleFilter(object):
     #
     #     n = q[0].shape[0]
     #
-    #     # best_particles = np.zeros((n, 2))
     #     best_particles = self.particles[q]
     #
     #     for i in range(n):
@@ -307,23 +390,39 @@ class ParticleFilter(object):
     #         cv2.circle(frame_in, (y, x), 2, (0, 0, 255), 2)
     #
     #     cv2.imwrite("best.png", frame_in)
-
+    #
     # def show_error_function(self, frame):
+    #     cv2.imwrite("out/t_" + str(self.time) + ".png", self.template)
     #
     #     h = frame.shape[0]
     #     w = frame.shape[1]
     #     mse_m = np.zeros((h, w), dtype=np.float)
+    #     mse_m[:,:] = 10000
     #     expanded_frame = cv2.copyMakeBorder(frame, self.t_h_2, self.t_h_2, self.t_w_2, self.t_w_2, cv2.BORDER_REFLECT)
     #
-    #     for i in range(h):
-    #         for j in range(w):
-    #             frame_cutout = expanded_frame[i:i+2*self.t_w_2, j:j+2*self.t_h_2]
+    #     for i in range(400, h-200):
+    #         for j in range(100, w-500):
+    #             x_bound, y_bound = self.get_cutout_bounds()
+    #             frame_cutout = expanded_frame[i:i+y_bound, j:j+x_bound]
     #             mse_m[i, j] = self.get_error_metric(self.template, frame_cutout)
     #
-    #     u = np.exp(mse_m/(-2*np.std(mse_m)))
+    #     # u = np.exp(mse_m/(-2*np.std(mse_m)))
+    #     u = np.exp(mse_m/(-15000))
+    #
+    #     # u[mse_m == 0] = 0
     #     u = u / u.max() * 255
     #     cv2.imwrite("out/error_map.png", u)
     #     pass
+
+    def particle_distibution(self):
+        x_min = self.particles[:,0].min()
+        x_max = self.particles[:,0].max()
+        y_min = self.particles[:,1].min()
+        y_max = self.particles[:,1].max()
+        x_std = np.std(self.particles[:, 0])
+        y_std = np.std(self.particles[:, 1])
+        # print(x_min, x_max, x_std, " --- ", y_min, y_max, y_std, self.min_mse, self.current_mse)
+        return x_std, y_std
 
     def process(self, frame):
         """Processes a video frame (image) and updates the filter's state.
@@ -344,25 +443,30 @@ class ParticleFilter(object):
             None.
         """
         self.increment_time()
-        frame = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+        self.particle_distibution()
+        # self.diffuse()
+        # frame = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
         # move particles by gaussian noise
-        self.render(np.copy(frame), "out/frame_" + str(self.time) + "_0.png")
-
-        # self.show_error_function(np.copy(frame))
-        # likelihood of measurement
-        self.update_measurement_likelihood(frame)
-        # update weights
-        self.update_weights()
-        # self.render_best_weights(frame)
-        # resample
-        sampled_particles = self.resample_particles()
-        self.particles = sampled_particles
+        self.render(np.copy(frame), "out/frames/frame_" + str(self.time) + "_0.png")
+        if not self.is_occluded:
+            # self.show_error_function(np.copy(frame))
+            # likelihood of measurement
+            self.update_measurement_likelihood(frame)
+            # update weights
+            self.update_weights()
+            # self.render_best_weights(frame)
+            # resample
+            sampled_particles, weights = self.resample_particles()
+            self.particles = sampled_particles
+            self.weights = weights
+            self.weights = self.weights / np.sum(self.weights)
         self.render(np.copy(frame), "out/frame_" + str(self.time) + "_1.png")
+
         self.diffuse()
         self.render(np.copy(frame), "out/frame_" + str(self.time) + "_2.png")
 
         # get mean x, mean y etc
-        x, y = self.get_mean()
+        x, y, _ = self.get_mean()
         return x, y
 
     def render(self, frame_in, file=None, render=False):
@@ -400,7 +504,7 @@ class ParticleFilter(object):
         y_weighted_mean = 0
 
         for i in range(self.num_particles):
-            x, y = self.get_particle(i)
+            x, y, _ = self.get_particle(i)
             cv2.circle(frame_in, (x, y), 2, (0, 0, 255), 2)
             x_weighted_mean += self.particles[i, 0] * self.weights[i]
             y_weighted_mean += self.particles[i, 1] * self.weights[i]
@@ -427,29 +531,77 @@ class AppearanceModelPF(ParticleFilter):
         super(AppearanceModelPF, self).__init__(frame, template, **kwargs)  # call base class constructor
 
         self.alpha = kwargs.get('alpha')  # required by the autograder
-        self.d = -500
+        # params for problem 3
+        # self.d = -5000
+        self.d = -5000
         # If you want to add more parameters, make sure you set a default value so that
         # your test doesn't fail the autograder because of an unknown or None value.
         #
         # The way to do it is:
         # self.some_parameter_name = kwargs.get('parameter_name', default_value)
 
-    def get_best_patch(self, frame):
+    def get_average_patch(self, frame):
+        x_avg, y_avg, t_size_avg = self.get_mean()
+        print(t_size_avg)
+        avg_patch = self.get_patch(int(x_avg), int(y_avg), frame, t_size_avg)
+        return avg_patch
 
-        mse, _ = self.calculate_mse_error(frame)
-        expanded_frame = self.expand_frame(frame)
-
-        best_mse_index = np.argmin(mse)
-        x, y = self.get_particle(best_mse_index)
-        x_bound, y_bound = self.get_cutout_bounds()
+    def get_patch(self, x, y, frame, t_size):
+        adjusted_template = self.get_adjusted_template(t_size)
+        x_bound, y_bound = self.get_cutout_bounds(adjusted_template)
+        expanded_frame = self.expand_frame(frame, adjusted_template)
         best_patch = expanded_frame[y:y+y_bound, x:x+x_bound]
         return best_patch
 
-    def update_template(self, frame, write=False):
-        previous_template = self.template
-        best_patch = self.get_best_patch(frame)
-        new_template = self.alpha * best_patch + (1 - self.alpha) * self.template
-        self.template = new_template
+    def get_best_patch(self, frame):
+
+        mse, _ = self.calculate_mse_error(frame)
+
+        best_mse_index = np.argmin(mse)
+        x, y, t_size = self.get_particle(best_mse_index)
+        best_patch = self.get_patch(x, y, frame, t_size)
+        return best_patch
+
+    def get_template_error(self, t_1, t_2):
+        t_1_gray = cv2.cvtColor(t_1.astype(np.uint8),cv2.COLOR_BGR2GRAY).astype(np.float)
+        t_2_gray = cv2.cvtColor(t_2,cv2.COLOR_BGR2GRAY).astype(np.float)
+
+        diff = t_1_gray - t_2_gray
+        squared = diff * diff
+        error = np.sum(squared) / (256 * 256)
+        return error
+
+    def update_previous_templates(self, new_template, template_error):
+        self.previous_templates.insert(0, new_template)
+        self.template_error.insert(0, template_error)
+        del self.previous_templates[7]
+        del self.template_error[self.template_error_size ]
+
+    def get_alpha(self):
+        x_std, y_std = self.particle_distibution()
+        alpha = np.exp(-1 * (x_std + y_std)/50)
+        return alpha
+
+    def update_template(self, frame, write=True):
+        previous_template = np.copy(self.template)
+        if self.is_tracking():
+            best_patch = self.get_average_patch(frame)
+        else:
+            best_patch = self.get_best_patch(frame)
+        h = best_patch.shape[0]
+        w = best_patch.shape[1]
+        resized_previous = cv2.resize(previous_template, (w,h))
+        template_error = self.get_template_error(resized_previous, best_patch)
+        alpha = 0.0#self.get_alpha()
+        # if self.complete_update:
+        #     alpha = 0.01
+            #self.complete_update = False
+
+        # new_template = self.alpha * best_patch + (1 - self.alpha) * self.template
+
+        new_template = alpha * best_patch + (1 - alpha) * resized_previous
+        # self.update_previous_templates(new_template, template_error)
+        # self.template = new_template
         if write:
             cv2.imwrite("out/best_template/t_" + str(self.time) + ".png", best_patch)
             cv2.imwrite("out/template/t_" + str(self.time) + ".png", self.template)
@@ -468,8 +620,11 @@ class AppearanceModelPF(ParticleFilter):
         Returns:
             None.
         """
-        gray_frame = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
-        self.update_template(gray_frame, write=True)
+        # gray_frame = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+        # self.detect_occlusion(frame)
+
+        if not self.is_occluded:
+            self.update_template(frame, write=True)
         x, y = super(AppearanceModelPF, self).process(frame)
         return x, y
         # raise NotImplementedError
@@ -487,11 +642,55 @@ class MDParticleFilter(AppearanceModelPF):
         """
 
         super(MDParticleFilter, self).__init__(frame, template, **kwargs)  # call base class constructor
+        self.in_template_adjust_mode = True
+        self.alpha = 0.05
         # If you want to add more parameters, make sure you set a default value so that
         # your test doesn't fail the autograder because of an unknown or None value.
         #
         # The way to do it is:
         # self.some_parameter_name = kwargs.get('parameter_name', default_value)
+
+    def diffuse_template_size(self):
+        template_size_dynamics_vector = np.random.uniform(low=-0.015, high=0.015, size=(self.num_particles))
+        t_size = self.particles[:, 2] + template_size_dynamics_vector
+        # don't let template get 50% smaller than orignal
+        d = 0.3
+        t_size[t_size < d] = d
+        self.particles[:, 2] = t_size
+
+    # def detect_occlusion(self, frame):
+    #     if not self.is_tracking():
+    #         return
+    #
+    #     previous_template = self.template
+    #     best_patch = self.get_average_patch(frame)
+    #     h = best_patch.shape[0]
+    #     w = best_patch.shape[1]
+    #     resized_previous = cv2.resize(previous_template, (w,h))
+    #     template_error = self.get_template_error(resized_previous, best_patch)
+    #     previous_error = cv2.resize(self.previous_templates[len(self.previous_templates)-1], (w,h))
+    #     # original_error = self.get_template_error(previous_error, best_patch)
+    #     # print(template_error)
+    #     gray_patch = cv2.cvtColor(best_patch,cv2.COLOR_BGR2GRAY)
+    #     gray_patch[gray_patch < 50] = 1
+    #     gray_patch[gray_patch >= 50] = 0
+    #     count = np.sum(gray_patch)
+    #
+    #     avg = np.average(np.array(self.template_error))
+    #     error = (avg - template_error) ** 2
+    #     print(template_error, avg, np.sqrt(error), count, self.time)
+    #
+    #     avg = np.average(np.array(self.template_error))
+    #     error = (avg - template_error) ** 2
+    #
+    #     if not self.is_occluded and avg < 610 and avg + 200 < template_error:
+    #         self.is_occluded = True
+    #         print("skipping")
+    #         self.template = self.previous_templates[len(self.previous_templates)-1]
+    #     if self.is_occluded and template_error < 400.0:
+    #         self.is_occluded = False
+    #         self.complete_update = True
+            # self.template = self.previous_templates[2]
 
     def process(self, frame):
         """Processes a video frame (image) and updates the filter's state.
@@ -507,4 +706,9 @@ class MDParticleFilter(AppearanceModelPF):
         Returns:
             None.
         """
-        raise NotImplementedError
+        # self.detect_occlusion(frame)
+        if not self.is_occluded:
+            self.update_template(frame, write=True)
+        x, y = super(AppearanceModelPF, self).process(frame)
+        self.diffuse_template_size()
+        return x, y
