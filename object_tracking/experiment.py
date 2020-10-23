@@ -264,10 +264,10 @@ def part_3():
                    50: os.path.join(output_dir, 'ps5-3-a-2.png'),
                    160: os.path.join(output_dir, 'ps5-3-a-3.png')}
 
-    num_particles = 0  # Define the number of particles
-    sigma_mse = 0  # Define the value of sigma for the measurement exponential equation
-    sigma_dyn = 0  # Define the value of sigma for the particles movement (dynamics)
-    alpha = 0  # Set a value for alpha
+    num_particles = 1100  # Define the number of particles
+    sigma_mse = 30  # Define the value of sigma for the measurement exponential equation
+    sigma_dyn = 20  # Define the value of sigma for the particles movement (dynamics)
+    alpha = 0.1  # Set a value for alpha
 
     run_particle_filter(ps5.AppearanceModelPF,  # particle filter model class
                         os.path.join(input_dir, "pres_debate"),
@@ -276,7 +276,7 @@ def part_3():
                         save_frames,
                         num_particles=num_particles, sigma_exp=sigma_mse,
                         sigma_dyn=sigma_dyn, alpha=alpha,
-                        template_coords=template_rect)  # Add more if you need to
+                        template_coords=template_rect, in_gray_mode=False, use_constant_alpha=False)  # Add more if you need to
 
 
 def part_4():
@@ -288,8 +288,8 @@ def part_4():
                    300: os.path.join(output_dir, 'ps5-4-a-4.png')}
 
     num_particles = 0  # Define the number of particles
-    sigma_md = 0  # Define the value of sigma for the measurement exponential equation
-    sigma_dyn = 0  # Define the value of sigma for the particles movement (dynamics)
+    sigma_md = 30  # Define the value of sigma for the measurement exponential equation
+    sigma_dyn = 9  # Define the value of sigma for the particles movement (dynamics)
 
     run_particle_filter(ps5.MDParticleFilter,
                         os.path.join(input_dir, "pedestrians"),
@@ -324,11 +324,11 @@ def part_6():
     raise NotImplementedError
 
 if __name__ == '__main__':
-    part_1b()
-    part_1c()
-    part_2a()
-    part_2b()
+    # part_1b()
+    # part_1c()
+    # part_2a()
+    # part_2b()
     part_3()
-    part_4()
-    part_5()
-    part_6()
+    # part_4()
+    # part_5()
+    # part_6()
