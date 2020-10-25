@@ -505,8 +505,8 @@ class ParticleFilter(object):
             cv2.circle(frame_in, (int(x_weighted_mean), int(y_weighted_mean)), int(z_d), (255, 0, 0), 2)
 
         # Complete the rest of the code as instructed.
-        if file is not None and render:
-            cv2.imwrite(file, frame_in)
+        # if file is not None and render:
+        #     cv2.imwrite(file, frame_in)
 
 
 class AppearanceModelPF(ParticleFilter):
@@ -536,7 +536,7 @@ class AppearanceModelPF(ParticleFilter):
 
     def get_average_patch(self, frame):
         x_avg, y_avg, t_size_avg = self.get_mean()
-        print(t_size_avg)
+        # print(t_size_avg)
         avg_patch = self.get_patch(int(x_avg), int(y_avg), frame, t_size_avg)
         return avg_patch
 
@@ -601,15 +601,15 @@ class AppearanceModelPF(ParticleFilter):
         else:
             alpha = self.get_alpha()
         # alpha = self.alpha
-        print(self.time, alpha, template_error)
+        # print(self.time, alpha, template_error)
 
         new_template = alpha * best_patch + (1 - alpha) * resized_previous
         # self.update_previous_templates(new_template, template_error)
         self.template = new_template
-        if write:
-            cv2.imwrite("out/best_template/t_" + str(self.time) + ".png", best_patch)
-            cv2.imwrite("out/template/t_" + str(self.time) + ".png", self.template)
-            cv2.imwrite("out/previous_template/t_" + str(self.time) + ".png", previous_template)
+        # if write:
+        #     cv2.imwrite("out/best_template/t_" + str(self.time) + ".png", best_patch)
+        #     cv2.imwrite("out/template/t_" + str(self.time) + ".png", self.template)
+        #     cv2.imwrite("out/previous_template/t_" + str(self.time) + ".png", previous_template)
 
     def process(self, frame):
         """Processes a video frame (image) and updates the filter's state.
@@ -699,5 +699,5 @@ class MDParticleFilter(AppearanceModelPF):
             self.update_template(frame, write=True)
         x, y = super(AppearanceModelPF, self).process(frame)
         self.diffuse_template_size()
-        cv2.imwrite("out/template/t_" + str(self.time) + ".png", self.template)
+        # cv2.imwrite("out/template/t_" + str(self.time) + ".png", self.template)
         return x, y
