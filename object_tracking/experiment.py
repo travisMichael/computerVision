@@ -226,8 +226,8 @@ def part_2a():
                    99: os.path.join(output_dir, 'ps5-2-a-4.png')}
 
     num_particles = 0  # Define the number of particles
-    sigma_mse = 0  # Define the value of sigma for the measurement exponential equation
-    sigma_dyn = 0  # Define the value of sigma for the particles movement (dynamics)
+    sigma_mse = 10  # Define the value of sigma for the measurement exponential equation
+    sigma_dyn = 8  # Define the value of sigma for the particles movement (dynamics)
 
     run_particle_filter(ps5.ParticleFilter,  # particle filter model class
                         os.path.join(input_dir, "circle"),
@@ -241,6 +241,7 @@ def part_2a():
 def part_2b():
 
     template_loc = {'x': 360, 'y': 141, 'w': 127, 'h': 179}
+    box = {'x_min': 320, 'x_max': 450, 'y_min': 120, 'y_max': 320}
 
     save_frames = {10: os.path.join(output_dir, 'ps5-2-b-1.png'),
                    33: os.path.join(output_dir, 'ps5-2-b-2.png'),
@@ -248,8 +249,8 @@ def part_2b():
                    99: os.path.join(output_dir, 'ps5-2-b-4.png')}
 
     num_particles = 0  # Define the number of particles
-    sigma_mse = 0  # Define the value of sigma for the measurement exponential equation
-    sigma_dyn = 0  # Define the value of sigma for the particles movement (dynamics)
+    sigma_mse = 10  # Define the value of sigma for the measurement exponential equation
+    sigma_dyn = 10  # Define the value of sigma for the particles movement (dynamics)
 
     run_particle_filter(ps5.ParticleFilter,  # particle filter model class
                         os.path.join(input_dir, "pres_debate_noisy"),
@@ -257,17 +258,19 @@ def part_2b():
                         save_frames,
                         num_particles=num_particles, sigma_exp=sigma_mse,
                         sigma_dyn=sigma_dyn,
-                        template_coords=template_loc)  # Add more if you need to
+                        template_coords=template_loc,
+                        use_box_initialization=True, box=box)  # Add more if you need to
 
 
 def part_3():
     template_rect = {'x': 538, 'y': 377, 'w': 73, 'h': 117}
+    box = {'x_min': 500, 'x_max': 600, 'y_min': 350, 'y_max': 500}
 
     save_frames = {22: os.path.join(output_dir, 'ps5-3-a-1.png'),
                    50: os.path.join(output_dir, 'ps5-3-a-2.png'),
                    160: os.path.join(output_dir, 'ps5-3-a-3.png')}
 
-    num_particles = 1100  # Define the number of particles
+    num_particles = 700  # Define the number of particles
     sigma_mse = 30  # Define the value of sigma for the measurement exponential equation
     sigma_dyn = 20  # Define the value of sigma for the particles movement (dynamics)
     alpha = 0.1  # Set a value for alpha
@@ -279,18 +282,20 @@ def part_3():
                         save_frames,
                         num_particles=num_particles, sigma_exp=sigma_mse,
                         sigma_dyn=sigma_dyn, alpha=alpha,
-                        template_coords=template_rect, in_gray_mode=False, use_constant_alpha=False)  # Add more if you need to
+                        template_coords=template_rect, in_gray_mode=False, use_constant_alpha=False,
+                        use_box_initialization=True, box=box)  # Add more if you need to
 
 
 def part_4():
     template_rect = {'x': 210, 'y': 37, 'w': 103, 'h': 285}
+    box = {'x_min': 200, 'x_max': 310, 'y_min': 30, 'y_max': 320}
 
     save_frames = {40: os.path.join(output_dir, 'ps5-4-a-1.png'),
                    100: os.path.join(output_dir, 'ps5-4-a-2.png'),
                    240: os.path.join(output_dir, 'ps5-4-a-3.png'),
                    300: os.path.join(output_dir, 'ps5-4-a-4.png')}
 
-    num_particles = 0  # Define the number of particles
+    num_particles = 100  # Define the number of particles
     sigma_md = 30  # Define the value of sigma for the measurement exponential equation
     sigma_dyn = 9  # Define the value of sigma for the particles movement (dynamics)
 
@@ -300,7 +305,8 @@ def part_4():
                         save_frames,
                         num_particles=num_particles, sigma_exp=sigma_md,
                         sigma_dyn=sigma_dyn,
-                        template_coords=template_rect)  # Add more if you need to
+                        template_coords=template_rect,
+                        use_box_initialization=True, box=box)
 
 
 def part_5():
@@ -434,6 +440,6 @@ if __name__ == '__main__':
     # part_2a()
     # part_2b()
     # part_3()
-    # part_4()
-    part_5()
+    part_4()
+    # part_5()
     # part_6()
