@@ -81,7 +81,7 @@ def run_particle_filter(filter_class, imgs_dir, template_rect,
         if frame_num in save_frames:
             frame_out = frame.copy()
             pf.render(frame_out)
-            cv2.imwrite(save_frames[frame_num], frame_out)
+            # cv2.imwrite(save_frames[frame_num], frame_out)
 
         # Update frame number
         frame_num += 1
@@ -249,7 +249,7 @@ def part_2b():
                    99: os.path.join(output_dir, 'ps5-2-b-4.png')}
 
     num_particles = 0  # Define the number of particles
-    sigma_mse = 10  # Define the value of sigma for the measurement exponential equation
+    sigma_mse = 20  # Define the value of sigma for the measurement exponential equation
     sigma_dyn = 10  # Define the value of sigma for the particles movement (dynamics)
 
     run_particle_filter(ps5.ParticleFilter,  # particle filter model class
@@ -270,10 +270,12 @@ def part_3():
                    50: os.path.join(output_dir, 'ps5-3-a-2.png'),
                    160: os.path.join(output_dir, 'ps5-3-a-3.png')}
 
-    num_particles = 700  # Define the number of particles
-    sigma_mse = 30  # Define the value of sigma for the measurement exponential equation
-    sigma_dyn = 20  # Define the value of sigma for the particles movement (dynamics)
-    alpha = 0.1  # Set a value for alpha
+    num_particles = 0
+    # sigma_mse = 30
+    # sigma_dyn = 20
+    sigma_mse = 40
+    sigma_dyn = 20
+    alpha = 0.1
 
     run_particle_filter(ps5.AppearanceModelPF,  # particle filter model class
                         os.path.join(input_dir, "pres_debate"),
@@ -295,9 +297,9 @@ def part_4():
                    240: os.path.join(output_dir, 'ps5-4-a-3.png'),
                    300: os.path.join(output_dir, 'ps5-4-a-4.png')}
 
-    num_particles = 100  # Define the number of particles
-    sigma_md = 30  # Define the value of sigma for the measurement exponential equation
-    sigma_dyn = 9  # Define the value of sigma for the particles movement (dynamics)
+    num_particles = -600  # Define the number of particles
+    sigma_md = 40  # Define the value of sigma for the measurement exponential equation
+    sigma_dyn = 2  # Define the value of sigma for the particles movement (dynamics)
 
     run_particle_filter(ps5.MDParticleFilter,
                         os.path.join(input_dir, "pedestrians"),
@@ -355,20 +357,20 @@ def part_5():
     # ------------------------------------ 15, 26
 
     num_particles_1 = 1300
-    sigma_md_1 = 0
+    sigma_md_1 = 10
     sigma_dyn_1 = 18
     filter_1 = None
     box_1 = {'x_min': 290, 'x_max': 340, 'y_min': 175, 'y_max': 300}
 
     num_particles_2 = 600
-    sigma_md_2 = 0
-    sigma_dyn_2 = 17
+    sigma_md_2 = 10
+    sigma_dyn_2 = 13
     filter_2 = None
     box_2 = {'x_min': 65, 'x_max': 175, 'y_min': 125, 'y_max': 355}
 
     num_particles_3 = 800
-    sigma_md_3 = 20
-    sigma_dyn_3 = 20
+    sigma_md_3 = 30
+    sigma_dyn_3 = 15
     filter_3 = None
     box_3 = {'x_min': 0, 'x_max': 100, 'y_min': 125, 'y_max': 400}
 
@@ -419,8 +421,8 @@ def part_6():
                    186: os.path.join(output_dir, 'ps5-6-a-3.png')}
 
     num_particles = 300
-    sigma_md = 10
-    sigma_dyn = 17
+    sigma_md = 20
+    sigma_dyn = 12
     box = {'x_min': 85, 'x_max': 121, 'y_min': 50, 'y_max': 150}
 
     run_particle_filter(ps5.MDParticleFilter,
@@ -428,7 +430,7 @@ def part_6():
                         template_rect,
                         save_frames,
                         num_particles=num_particles, sigma_exp=sigma_md,
-                        sigma_dyn=sigma_dyn, in_gray_mode=False, alpha=0.5,
+                        sigma_dyn=sigma_dyn, in_gray_mode=False, alpha=0.3,
                         template_coords=template_rect, min_d=-0.3, max_d=0.3,
                         use_box_initialization=True, box=box,
                         use_alpha_blending=True)
@@ -440,6 +442,6 @@ if __name__ == '__main__':
     # part_2a()
     # part_2b()
     # part_3()
-    part_4()
-    # part_5()
+    # part_4()
+    part_5()
     # part_6()

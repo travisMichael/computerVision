@@ -7,23 +7,23 @@ import numpy as np
 def process_filters(filter_1, filter_2, filter_3, frame, frame_num, save_frames={}):
     out_frame = frame.copy()
 
-    if frame_num < 49:
-        filter_1.process(frame)
-        filter_1.render(out_frame)
-        debug = True
-        if debug:
-            render_t_1(frame_num, filter_1)
+    # if frame_num < 49:
+    #     filter_1.process(frame)
+    #     filter_1.render(out_frame)
+    #     debug = True
+    #     if debug:
+    #         render_t_1(frame_num, filter_1)
 
     # if frame_num < 62:
     #     filter_2.process(frame)
     #     filter_2.render(out_frame)
-    #
-    # if frame_num > 21:
-    #     x, y = filter_3.process(frame)
-    #     filter_3.render(out_frame)
-    #     debug = True
-    #     if debug:
-    #         render_t_3(frame_num, x, y, filter_3, frame)
+
+    if frame_num > 21:
+        x, y = filter_3.process(frame)
+        filter_3.render(out_frame)
+        debug = True
+        if debug:
+            render_t_3(frame_num, x, y, filter_3, frame)
 
     render(out_frame)
     # save(frame_num, out_frame, save_frames)

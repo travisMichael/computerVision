@@ -106,9 +106,9 @@ class ParticleFilter(object):
                     - template_rect (dict): Template coordinates with x, y,
                                             width, and height values.
         """
-        self.num_particles = kwargs.get('num_particles') + 900 # required by the autograder
-        self.sigma_exp = kwargs.get('sigma_exp') + 20 # required by the autograder
-        self.sigma_dyn = kwargs.get('sigma_dyn') - 2  # required by the autograder
+        self.num_particles = kwargs.get('num_particles') + 1700 # required by the autograder
+        self.sigma_exp = kwargs.get('sigma_exp') + 15 # required by the autograder
+        self.sigma_dyn = kwargs.get('sigma_dyn')   # required by the autograder
         self.template_rect = kwargs.get('template_coords')  # required by the autograder
         # If you want to add more parameters, make sure you set a default value so that
         # your test doesn't fail the autograder because of an unknown or None value.
@@ -134,23 +134,16 @@ class ParticleFilter(object):
         self.h = h
         self.w = w
         # Initialize your particles array. Read the docstring. (x, y)
-        self.particles = np.random.uniform(size=(self.num_particles, 3))
+        self.particles = np.random.uniform(size=(self.num_particles, 2))
         use_box_initialization = kwargs.get('use_box_initialization', False)
         box = kwargs.get('box', {})
         if use_box_initialization:
             self.particles[:, 0] = np.random.uniform(low=box.get("x_min"), high=box.get("x_max"), size=self.num_particles)
             self.particles[:, 1] = np.random.uniform(low=box.get("y_min"), high=box.get("y_max"), size=self.num_particles)
-            # x = box.get("x")
-            # y = box.get("y")
-            # width = box.get("width")
-            # height = box.get("height")
-            # self.particles[:, 0] = self.particles[:, 0] * width + x
-            # self.particles[:, 1] = self.particles[:, 1] * height + y
         else:
-
             self.particles[:, 0] = self.particles[:, 0] * w
             self.particles[:, 1] = self.particles[:, 1] * h
-        self.particles[:, 2] = 1.0
+        # self.particles[:, 2] = 1.0
 
         # Initialize your weights array. Read the docstring.
         # self.in_template_adjust_mode = False
@@ -167,10 +160,15 @@ class ParticleFilter(object):
         self.time = 0
 
     def get_particle(self, i):
-        x, y, t_size = self.particles[i]
+        if self.particles.shape[1] == 3:
+            x, y, t_size = self.particles[i]
+            x = int(x)
+            y = int(y)
+            return x, y, t_size
+        x, y = self.particles[i]
         x = int(x)
         y = int(y)
-        return x, y, t_size
+        return x, y
 
     def increment_time(self):
         self.time += 1
@@ -287,7 +285,12 @@ class ParticleFilter(object):
         mse = np.ones_like(self.z)
         zeros = np.zeros_like(self.z)
         for i in range(self.particles.shape[0]):
-            x, y, t_size = self.get_particle(i)
+            particle = self.get_particle(i)
+            if len(particle) == 2:
+                x, y = particle
+                t_size = 1.0
+            else:
+                x, y, t_size = particle
             if x < 0 or x >= w or y < 0 or y >= h:
                 zeros[i] = 1
             if self.in_template_adjust_mode:
@@ -325,10 +328,12 @@ class ParticleFilter(object):
     def get_mean(self):
         x = self.particles[:, 0]
         y = self.particles[:, 1]
-        t_size = self.particles[:, 2]
+        t_avg = 1.0
+        if self.particles.shape[1] == 3:
+            t_size = self.particles[:, 2]
+            t_avg = np.multiply(t_size, self.weights)
         x_w = np.multiply(x, self.weights)
         y_w = np.multiply(y, self.weights)
-        t_avg = np.multiply(t_size, self.weights)
 
         return np.sum(x_w), np.sum(y_w), np.sum(t_avg)
 
@@ -375,10 +380,10 @@ class ParticleFilter(object):
     #     pass
 
     def particle_distibution(self):
-        x_min = self.particles[:,0].min()
-        x_max = self.particles[:,0].max()
-        y_min = self.particles[:,1].min()
-        y_max = self.particles[:,1].max()
+        # x_min = self.particles[:,0].min()
+        # x_max = self.particles[:,0].max()
+        # y_min = self.particles[:,1].min()
+        # y_max = self.particles[:,1].max()
         x_std = np.std(self.particles[:, 0])
         y_std = np.std(self.particles[:, 1])
         # print(x_min, x_max, x_std, " --- ", y_min, y_max, y_std, self.min_mse, self.current_mse)
@@ -466,11 +471,20 @@ class ParticleFilter(object):
         size_weighted_mean = 0
 
         for i in range(self.num_particles):
-            x, y, size = self.get_particle(i)
+            particle = self.get_particle(i)
+            if len(particle) == 2:
+                x, y = particle
+                t_size = 1.0
+            else:
+                x, y, t_size = particle
+            # x, y, size = self.get_particle(i)
             cv2.circle(frame_in, (x, y), 1, (0, 0, 255), 1)
-            x_weighted_mean += self.particles[i, 0] * self.weights[i]
-            y_weighted_mean += self.particles[i, 1] * self.weights[i]
-            size_weighted_mean += self.particles[i, 2] * self.weights[i]
+            x_weighted_mean += x * self.weights[i]
+            y_weighted_mean += y * self.weights[i]
+            size_weighted_mean += t_size * self.weights[i]
+            # x_weighted_mean += self.particles[i, 0] * self.weights[i]
+            # y_weighted_mean += self.particles[i, 1] * self.weights[i]
+            # size_weighted_mean += self.particles[i, 2] * self.weights[i]
 
         h_2 = self.t_h_2 * size_weighted_mean
         w_2 = self.t_w_2 * size_weighted_mean
@@ -509,10 +523,10 @@ class AppearanceModelPF(ParticleFilter):
         """
 
         super(AppearanceModelPF, self).__init__(frame, template, **kwargs)  # call base class constructor
-        # self.sigma_exp -= 20
-        self.sigma_dyn -= 5
+        self.sigma_exp += -5
+        self.sigma_dyn -= 0
         self.in_template_adjust_mode = False
-        self.alpha = kwargs.get('alpha')  # required by the autograder
+        self.alpha = kwargs.get('alpha') # + 0.1 # required by the autograder
         self.use_constant_alpha = kwargs.get('use_constant_alpha', True)
         # If you want to add more parameters, make sure you set a default value so that
         # your test doesn't fail the autograder because of an unknown or None value.
@@ -538,13 +552,24 @@ class AppearanceModelPF(ParticleFilter):
         mse, _ = self.calculate_mse_error(frame)
 
         best_mse_index = np.argmin(mse)
-        x, y, t_size = self.get_particle(best_mse_index)
+        particle = self.get_particle(best_mse_index)
+        if len(particle) == 2:
+            x, y = particle
+            t_size = 1.0
+        else:
+            x, y, t_size = particle
+        # x, y, t_size = self.get_particle(best_mse_index)
         best_patch = self.get_patch(x, y, frame, t_size)
         return best_patch
 
     def get_template_error(self, t_1, t_2):
-        t_1_gray = cv2.cvtColor(t_1.astype(np.uint8),cv2.COLOR_BGR2GRAY).astype(np.float)
-        t_2_gray = cv2.cvtColor(t_2,cv2.COLOR_BGR2GRAY).astype(np.float)
+
+        if not self.in_gray_mode:
+            t_1_gray = cv2.cvtColor(t_1.astype(np.uint8),cv2.COLOR_BGR2GRAY).astype(np.float)
+            t_2_gray = cv2.cvtColor(t_2,cv2.COLOR_BGR2GRAY).astype(np.float)
+        else:
+            t_1_gray = t_1
+            t_2_gray = t_2
 
         diff = t_1_gray - t_2_gray
         squared = diff * diff
@@ -626,10 +651,23 @@ class MDParticleFilter(AppearanceModelPF):
         # your test doesn't fail the autograder because of an unknown or None value.
         #
         # The way to do it is:
+        h = frame.shape[0]
+        w = frame.shape[1]
         self.use_constant_alpha = kwargs.get('use_constant_alpha', True)
         self.min_d = kwargs.get('min_d', -0.015)
         self.max_d = kwargs.get('max_d', 0.015)
         self.use_alpha_blending = kwargs.get('use_alpha_blending', False)
+        self.particles = np.random.uniform(size=(self.num_particles, 3))
+        use_box_initialization = kwargs.get('use_box_initialization', False)
+        box = kwargs.get('box', {})
+        if use_box_initialization:
+            self.particles[:, 0] = np.random.uniform(low=box.get("x_min"), high=box.get("x_max"), size=self.num_particles)
+            self.particles[:, 1] = np.random.uniform(low=box.get("y_min"), high=box.get("y_max"), size=self.num_particles)
+        else:
+            self.particles[:, 0] = self.particles[:, 0] * w
+            self.particles[:, 1] = self.particles[:, 1] * h
+        self.particles[:, 2] = 1.0
+
 
     def diffuse_template_size(self):
         template_size_dynamics_vector = np.random.uniform(low=self.min_d, high=self.max_d, size=(self.num_particles))
