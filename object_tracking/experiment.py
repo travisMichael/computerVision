@@ -5,8 +5,8 @@ import ps5
 import os
 import numpy as np
 import multi_filter
-import kalman
-import kalman_2
+# import kalman
+# import kalman_2
 
 # I/O directories
 input_dir = "input_images"
@@ -108,7 +108,6 @@ def run_kalman_filter(kf, imgs_dir, noise, sensor, save_frames={},
                          template_loc['y'] + template_loc['h'],
                          template_loc['x']:
                          template_loc['x'] + template_loc['w']]
-        template = multi_filter.get_template_2()
 
     else:
         raise ValueError("Unknown sensor name. Choose between 'hog' or "
@@ -144,12 +143,12 @@ def run_kalman_filter(kf, imgs_dir, noise, sensor, save_frames={},
             z_y += z_h // 2 + np.random.normal(0, noise['y'])
 
         x, y = kf.process(z_x, z_y)
-        if frame_num % 50 == 49:
-            x_int = int(x)
-            y_int = int(y-20)
-            h_2 = int(template.shape[0]/2)
-            w_2 = int(template.shape[1]/2)
-            template = frame[y_int-h_2:y_int + h_2+1, x_int-w_2:x_int + w_2]
+        # if frame_num % 50 == 49:
+        #     x_int = int(x)
+        #     y_int = int(y-20)
+        #     h_2 = int(template.shape[0]/2)
+        #     w_2 = int(template.shape[1]/2)
+        #     template = frame[y_int-h_2:y_int + h_2+1, x_int-w_2:x_int + w_2]
             # alpha = 0.5
             # template = template * alpha + (1-alpha)*new_template
             # template = template.astype(np.uint8)
@@ -325,10 +324,9 @@ def part_5():
     Place all your work in this file and this section.
     """
 
-    save_frames = {40: os.path.join(output_dir, 'ps5-4-a-1.png'),
-                   100: os.path.join(output_dir, 'ps5-4-a-2.png'),
-                   240: os.path.join(output_dir, 'ps5-4-a-3.png'),
-                   300: os.path.join(output_dir, 'ps5-4-a-4.png')}
+    save_frames = {29: os.path.join(output_dir, 'ps5-5-a-1.png'),
+                   56: os.path.join(output_dir, 'ps5-5-a-2.png'),
+                   71: os.path.join(output_dir, 'ps5-5-a-3.png')}
 
     # kf = ps5.KalmanFilter(105, 260, R=0.2 * np.eye(2))
     # template_rect = {'x': 55, 'y': 155, 'w': 100, 'h': 215}
@@ -359,26 +357,35 @@ def part_5():
     #                          None)
     # ------------------------------------ 15, 26
 
-    num_particles_1 = 800
-    sigma_md_1 = 10
-    sigma_dyn_1 = 15
+    num_particles_1 = 1300
+    sigma_md_1 = 0
+    sigma_dyn_1 = 18
     filter_1 = None
+    #  {'x': 300, 'y': 200, 'w': 25, 'h': 135}
+    box_1 = {'x_min': 290, 'x_max': 340, 'y_min': 175, 'y_max': 300}
 
     num_particles_2 = 600
     sigma_md_2 = 0
     sigma_dyn_2 = 17
     filter_2 = None
+    # {'x': 65, 'y': 155, 'w': 85, 'h': 185}
+    box_2 = {'x_min': 65, 'x_max': 175, 'y_min': 125, 'y_max': 355}
 
+    # num_particles_3 = 1000
+    # sigma_md_3 = 5
+    # sigma_dyn_3 = 17
+    # filter_3 = None
     num_particles_3 = 800
-    sigma_md_3 = 5
-    sigma_dyn_3 = 17
+    sigma_md_3 = 20
+    sigma_dyn_3 = 20
     filter_3 = None
+    box_3 = {'x_min': 0, 'x_max': 100, 'y_min': 125, 'y_max': 400}
 
     imgs_list = [f for f in os.listdir("input_images/TUD-Campus")
                  if f[0] != '.' and f.endswith('.jpg')]
     imgs_list.sort()
 
-    frame_num = 0
+    frame_num = 1
     # ps5.MDParticleFilter
     template_1 = multi_filter.get_template_1()
     template_2 = multi_filter.get_template_2()
@@ -391,27 +398,30 @@ def part_5():
         if filter_1 is None:
             filter_1 = ps5.AppearanceModelPF(frame, template_1, num_particles=num_particles_1, sigma_exp=sigma_md_1,
                                              sigma_dyn=sigma_dyn_1, alpha=0.0, in_gray_mode=False,
-                                             use_threshold=True, threshold=40.0)
+                                             use_threshold=False, threshold=40.0,
+                                             use_box_initialization=True, box=box_1)
         if filter_2 is None:
             filter_2 = ps5.AppearanceModelPF(frame, template_2, num_particles=num_particles_2, sigma_exp=sigma_md_2,
-                                             sigma_dyn=sigma_dyn_2, alpha=0.0, in_gray_mode=False)
+                                             sigma_dyn=sigma_dyn_2, alpha=0.0, in_gray_mode=False,
+                                             use_box_initialization=True, box=box_2)
         if filter_3 is None:
             filter_3 = ps5.AppearanceModelPF(frame, template_3, num_particles=num_particles_3, sigma_exp=sigma_md_3,
-                                             sigma_dyn=sigma_dyn_3, alpha=0.0, in_gray_mode=False)
+                                             sigma_dyn=sigma_dyn_3, alpha=0.0, in_gray_mode=False,
+                                             use_box_initialization=True, box=box_3)
 
         multi_filter.process_filters(filter_1, filter_2, filter_3, frame, frame_num, save_frames=save_frames)
-        # if frame_num == 13:
-        #     filter_1.sigma_exp += 40
-        #     filter_1.sigma_dyn += 10
-        # if frame_num == 17:
-        #     filter_1.sigma_exp -= 40
-        #     filter_1.sigma_dyn -= 10
-        # if frame_num == 33:
-        #     filter_1.sigma_exp += 40
-        #     filter_1.sigma_dyn += 10
-        # if frame_num == 38:
-        #     filter_1.sigma_exp -= 40
-        #     filter_1.sigma_dyn -= 10
+        if frame_num == 13:
+            filter_1.sigma_exp += 80
+            filter_1.sigma_dyn += 10
+        if frame_num == 18:
+            filter_1.sigma_exp -= 80
+            filter_1.sigma_dyn -= 10
+        if frame_num == 33:
+            filter_1.sigma_exp += 80
+            filter_1.sigma_dyn += 10
+        if frame_num == 38:
+            filter_1.sigma_exp -= 80
+            filter_1.sigma_dyn -= 10
         frame_num += 1
     print("done")
     # raise NotImplementedError
@@ -424,14 +434,32 @@ def part_6():
 
     Place all your work in this file and this section.
     """
-    raise NotImplementedError
+    template_rect = {'x': 210, 'y': 37, 'w': 103, 'h': 285}
+
+    save_frames = {40: os.path.join(output_dir, 'ps5-4-a-1.png'),
+                   100: os.path.join(output_dir, 'ps5-4-a-2.png'),
+                   240: os.path.join(output_dir, 'ps5-4-a-3.png'),
+                   300: os.path.join(output_dir, 'ps5-4-a-4.png')}
+
+    num_particles = 0  # Define the number of particles
+    sigma_md = 30  # Define the value of sigma for the measurement exponential equation
+    sigma_dyn = 9  # Define the value of sigma for the particles movement (dynamics)
+
+    run_particle_filter(ps5.MDParticleFilter,
+                        os.path.join(input_dir, "pedestrians"),
+                        template_rect,
+                        save_frames,
+                        num_particles=num_particles, sigma_exp=sigma_md,
+                        sigma_dyn=sigma_dyn,
+                        template_coords=template_rect)  # Add more if you need to
+    print("done")
 
 if __name__ == '__main__':
-    # part_1b()
+    part_1b()
     # part_1c()
     # part_2a()
     # part_2b()
     # part_3()
     # part_4()
-    part_5()
+    # part_5()
     # part_6()
