@@ -6,27 +6,30 @@ import numpy as np
 
 def process_filters(filter_1, filter_2, filter_3, frame, frame_num, save_frames={}):
     out_frame = frame.copy()
-    # save_frame = frame.copy()
+
     if frame_num < 49:
         filter_1.process(frame)
         filter_1.render(out_frame)
+        debug = True
+        if debug:
+            render_t_1(frame_num, filter_1)
 
-    if frame_num < 62:
-        filter_2.process(frame)
-        filter_2.render(out_frame)
+    # if frame_num < 62:
+    #     filter_2.process(frame)
+    #     filter_2.render(out_frame)
+    #
+    # if frame_num > 21:
+    #     x, y = filter_3.process(frame)
+    #     filter_3.render(out_frame)
+    #     debug = True
+    #     if debug:
+    #         render_t_3(frame_num, x, y, filter_3, frame)
 
-    if frame_num > 21:
-        x, y = filter_3.process(frame)
-        filter_3.render(out_frame)
-        render_t(frame_num, x, y, filter_3, frame, 3)
-
-    # Update frame number
-    # render_t()
     render(out_frame)
-    save(frame_num, out_frame, save_frames)
-    frame_num += 1
-    if frame_num % 20 == 0:
-        print('Working on frame {}'.format(frame_num))
+    # save(frame_num, out_frame, save_frames)
+    # frame_num += 1
+    # if frame_num % 20 == 0:
+    #     print('Working on frame {}'.format(frame_num))
 
 
 def save(frame_num, frame, save_frames):
@@ -42,8 +45,17 @@ def render(frame):
         cv2.waitKey(1)
 
 
-def render_t(n, x, y, filter, frame, f):
-    debug = n == 46 and f == 3
+def render_t_1(n, filter_1):
+    if n == 13 or n == 33:
+        filter_1.sigma_exp += 80
+        filter_1.sigma_dyn += 10
+    if n == 18 or n == 38:
+        filter_1.sigma_exp -= 80
+        filter_1.sigma_dyn -= 10
+
+
+def render_t_3(n, x, y, filter, frame):
+    debug = n == 46
     if debug:
         template = filter.template
         x_int = int(x)

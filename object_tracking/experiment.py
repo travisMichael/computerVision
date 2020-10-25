@@ -143,15 +143,6 @@ def run_kalman_filter(kf, imgs_dir, noise, sensor, save_frames={},
             z_y += z_h // 2 + np.random.normal(0, noise['y'])
 
         x, y = kf.process(z_x, z_y)
-        # if frame_num % 50 == 49:
-        #     x_int = int(x)
-        #     y_int = int(y-20)
-        #     h_2 = int(template.shape[0]/2)
-        #     w_2 = int(template.shape[1]/2)
-        #     template = frame[y_int-h_2:y_int + h_2+1, x_int-w_2:x_int + w_2]
-            # alpha = 0.5
-            # template = template * alpha + (1-alpha)*new_template
-            # template = template.astype(np.uint8)
 
         if True:  # For debugging, it displays every frame
             out_frame = frame.copy()
@@ -361,20 +352,14 @@ def part_5():
     sigma_md_1 = 0
     sigma_dyn_1 = 18
     filter_1 = None
-    #  {'x': 300, 'y': 200, 'w': 25, 'h': 135}
     box_1 = {'x_min': 290, 'x_max': 340, 'y_min': 175, 'y_max': 300}
 
     num_particles_2 = 600
     sigma_md_2 = 0
     sigma_dyn_2 = 17
     filter_2 = None
-    # {'x': 65, 'y': 155, 'w': 85, 'h': 185}
     box_2 = {'x_min': 65, 'x_max': 175, 'y_min': 125, 'y_max': 355}
 
-    # num_particles_3 = 1000
-    # sigma_md_3 = 5
-    # sigma_dyn_3 = 17
-    # filter_3 = None
     num_particles_3 = 800
     sigma_md_3 = 20
     sigma_dyn_3 = 20
@@ -386,7 +371,6 @@ def part_5():
     imgs_list.sort()
 
     frame_num = 1
-    # ps5.MDParticleFilter
     template_1 = multi_filter.get_template_1()
     template_2 = multi_filter.get_template_2()
     template_3 = multi_filter.get_template_3()
@@ -410,21 +394,9 @@ def part_5():
                                              use_box_initialization=True, box=box_3)
 
         multi_filter.process_filters(filter_1, filter_2, filter_3, frame, frame_num, save_frames=save_frames)
-        if frame_num == 13:
-            filter_1.sigma_exp += 80
-            filter_1.sigma_dyn += 10
-        if frame_num == 18:
-            filter_1.sigma_exp -= 80
-            filter_1.sigma_dyn -= 10
-        if frame_num == 33:
-            filter_1.sigma_exp += 80
-            filter_1.sigma_dyn += 10
-        if frame_num == 38:
-            filter_1.sigma_exp -= 80
-            filter_1.sigma_dyn -= 10
+
         frame_num += 1
-    print("done")
-    # raise NotImplementedError
+    # print("done")
 
 
 def part_6():
@@ -463,5 +435,5 @@ if __name__ == '__main__':
     # part_2b()
     # part_3()
     # part_4()
-    # part_5()
-    part_6()
+    part_5()
+    # part_6()
