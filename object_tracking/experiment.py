@@ -452,15 +452,16 @@ def part_6():
                         num_particles=num_particles, sigma_exp=sigma_md,
                         sigma_dyn=sigma_dyn, in_gray_mode=False, alpha=0.5,
                         template_coords=template_rect, min_d=-0.3, max_d=0.3,
-                        use_box_initialization=True, box=box)
+                        use_box_initialization=True, box=box,
+                        use_alpha_blending=True)
     print("done")
 
 if __name__ == '__main__':
-    part_1b()
+    # part_1b()
     # part_1c()
     # part_2a()
     # part_2b()
     # part_3()
     # part_4()
     # part_5()
-    # part_6()
+    part_6()

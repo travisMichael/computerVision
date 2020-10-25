@@ -135,8 +135,21 @@ class ParticleFilter(object):
         self.w = w
         # Initialize your particles array. Read the docstring. (x, y)
         self.particles = np.random.uniform(size=(self.num_particles, 3))
-        self.particles[:, 0] = self.particles[:, 0] * w
-        self.particles[:, 1] = self.particles[:, 1] * h
+        use_box_initialization = kwargs.get('use_box_initialization', False)
+        box = kwargs.get('box', {})
+        if use_box_initialization:
+            self.particles[:, 0] = np.random.uniform(low=box.get("x_min"), high=box.get("x_max"), size=self.num_particles)
+            self.particles[:, 1] = np.random.uniform(low=box.get("y_min"), high=box.get("y_max"), size=self.num_particles)
+            # x = box.get("x")
+            # y = box.get("y")
+            # width = box.get("width")
+            # height = box.get("height")
+            # self.particles[:, 0] = self.particles[:, 0] * width + x
+            # self.particles[:, 1] = self.particles[:, 1] * height + y
+        else:
+
+            self.particles[:, 0] = self.particles[:, 0] * w
+            self.particles[:, 1] = self.particles[:, 1] * h
         self.particles[:, 2] = 1.0
 
         # Initialize your weights array. Read the docstring.
@@ -480,7 +493,6 @@ class ParticleFilter(object):
         # Complete the rest of the code as instructed.
         if file is not None and render:
             cv2.imwrite(file, frame_in)
-        # raise NotImplementedError
 
 
 class AppearanceModelPF(ParticleFilter):
@@ -519,8 +531,6 @@ class AppearanceModelPF(ParticleFilter):
         x_bound, y_bound = self.get_cutout_bounds(adjusted_template)
         expanded_frame = self.expand_frame(frame, adjusted_template)
         best_patch = expanded_frame[y:y+y_bound, x:x+x_bound]
-        # if self.in_gray_mode:
-        #     best_patch = cv2.cvtColor(best_patch.astype(np.uint8),cv2.COLOR_BGR2GRAY).astype(np.float)
         return best_patch
 
     def get_best_patch(self, frame):
@@ -548,9 +558,7 @@ class AppearanceModelPF(ParticleFilter):
 
     def update_template(self, frame, write=True):
         previous_template = np.copy(self.template)
-        # if self.is_tracking():
-        #     best_patch = self.get_average_patch(frame)
-        # else:
+
         best_patch = self.get_best_patch(frame)
         h = best_patch.shape[0]
         w = best_patch.shape[1]
@@ -614,19 +622,25 @@ class MDParticleFilter(AppearanceModelPF):
 
         super(MDParticleFilter, self).__init__(frame, template, **kwargs)  # call base class constructor
         self.in_template_adjust_mode = True
-        self.alpha = 0.05
         # If you want to add more parameters, make sure you set a default value so that
         # your test doesn't fail the autograder because of an unknown or None value.
         #
         # The way to do it is:
         self.use_constant_alpha = kwargs.get('use_constant_alpha', True)
+        self.min_d = kwargs.get('min_d', -0.015)
+        self.max_d = kwargs.get('max_d', 0.015)
+        self.use_alpha_blending = kwargs.get('use_alpha_blending', False)
 
     def diffuse_template_size(self):
-        template_size_dynamics_vector = np.random.uniform(low=-0.015, high=0.015, size=(self.num_particles))
+        template_size_dynamics_vector = np.random.uniform(low=self.min_d, high=self.max_d, size=(self.num_particles))
         t_size = self.particles[:, 2] + template_size_dynamics_vector
-        # don't let template get 50% smaller than orignal
+        # don't let template get 30% smaller than original
         d = 0.3
         t_size[t_size < d] = d
+        self.particles[:, 2] = t_size
+        # don't let template get 250% larger than original
+        d = 2.5
+        t_size[t_size > d] = d
         self.particles[:, 2] = t_size
 
     def process(self, frame):
@@ -643,9 +657,9 @@ class MDParticleFilter(AppearanceModelPF):
         Returns:
             None.
         """
-        # self.detect_occlusion(frame)
-        # if not self.is_occluded:
-        #     self.update_template(frame, write=True)
+        if self.use_alpha_blending:
+            self.update_template(frame, write=True)
         x, y = super(AppearanceModelPF, self).process(frame)
         self.diffuse_template_size()
+        cv2.imwrite("out/template/t_" + str(self.time) + ".png", self.template)
         return x, y

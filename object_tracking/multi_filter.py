@@ -41,12 +41,10 @@ def render(frame):
         cv2.imshow('Tracking', frame)
         cv2.waitKey(1)
 
-    # render_t(frame_num, x, y, filter, frame, f)
-
 
 def render_t(n, x, y, filter, frame, f):
-
-    if n == 46 and f == 3:
+    debug = n == 46 and f == 3
+    if debug:
         template = filter.template
         x_int = int(x)
         y_int = int(y)
@@ -59,18 +57,10 @@ def render_t(n, x, y, filter, frame, f):
 
 def initialize_filter(filter_class, frame, template, **kwargs):
 
-    # template = frame[int(template_rect['y']):int(template_rect['y'] + template_rect['h']),
-    #            int(template_rect['x']):int(template_rect['x'] + template_rect['w'])]
-    #
-    # cv2.imwrite("out/template.png", template)
-
     pf = filter_class(frame, template, **kwargs)
 
     return pf
 
-# filter_1 = multi_filter.initialize_filter(ps5.AppearanceModelPF, frame,
-#                                           num_particles=num_particles_1, sigma_exp=sigma_md_1,
-#                                           sigma_dyn=sigma_dyn_1, alpha=0.0)
 
 def get_template_1():
 
@@ -103,18 +93,6 @@ def get_template_2():
 
     return template
 
-# def get_template_3():
-#
-#     frame = cv2.imread("input_images/TUD-Campus/000025.jpg")
-#     template_rect = {'x': 0, 'y': 175, 'w': 38, 'h': 145}
-#
-#     template = frame[int(template_rect['y']):int(template_rect['y'] + template_rect['h']),
-#                int(template_rect['x']):int(template_rect['x'] + template_rect['w'])]
-#
-#     cv2.imwrite("out/template_3.png", template)
-#
-#     return template
-
 
 def get_template_3():
 
@@ -128,5 +106,18 @@ def get_template_3():
 
     return template
 
-get_template_1()
+
+def get_template_4():
+
+    frame = cv2.imread("input_images/follow/000.jpg")
+    template_rect = {'x': 96, 'y': 55, 'w': 30, 'h': 72}
+
+    template = frame[int(template_rect['y']):int(template_rect['y'] + template_rect['h']),
+               int(template_rect['x']):int(template_rect['x'] + template_rect['w'])]
+
+    cv2.imwrite("out/template_4.png", template)
+
+    return template
+
+get_template_4()
 print()
