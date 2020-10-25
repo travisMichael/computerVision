@@ -4,6 +4,9 @@ import cv2
 import ps5
 import os
 import numpy as np
+import multi_filter
+import kalman
+import kalman_2
 
 # I/O directories
 input_dir = "input_images"
@@ -105,6 +108,7 @@ def run_kalman_filter(kf, imgs_dir, noise, sensor, save_frames={},
                          template_loc['y'] + template_loc['h'],
                          template_loc['x']:
                          template_loc['x'] + template_loc['w']]
+        template = multi_filter.get_template_2()
 
     else:
         raise ValueError("Unknown sensor name. Choose between 'hog' or "
@@ -140,8 +144,17 @@ def run_kalman_filter(kf, imgs_dir, noise, sensor, save_frames={},
             z_y += z_h // 2 + np.random.normal(0, noise['y'])
 
         x, y = kf.process(z_x, z_y)
+        if frame_num % 50 == 49:
+            x_int = int(x)
+            y_int = int(y-20)
+            h_2 = int(template.shape[0]/2)
+            w_2 = int(template.shape[1]/2)
+            template = frame[y_int-h_2:y_int + h_2+1, x_int-w_2:x_int + w_2]
+            # alpha = 0.5
+            # template = template * alpha + (1-alpha)*new_template
+            # template = template.astype(np.uint8)
 
-        if False:  # For debugging, it displays every frame
+        if True:  # For debugging, it displays every frame
             out_frame = frame.copy()
             cv2.circle(out_frame, (int(z_x), int(z_y)), 20, (0, 0, 255), 2)
             cv2.circle(out_frame, (int(x), int(y)), 10, (255, 0, 0), 2)
@@ -311,7 +324,97 @@ def part_5():
 
     Place all your work in this file and this section.
     """
-    raise NotImplementedError
+
+    save_frames = {40: os.path.join(output_dir, 'ps5-4-a-1.png'),
+                   100: os.path.join(output_dir, 'ps5-4-a-2.png'),
+                   240: os.path.join(output_dir, 'ps5-4-a-3.png'),
+                   300: os.path.join(output_dir, 'ps5-4-a-4.png')}
+
+    # kf = ps5.KalmanFilter(105, 260, R=0.2 * np.eye(2))
+    # template_rect = {'x': 55, 'y': 155, 'w': 100, 'h': 215}
+    #
+    # run_kalman_filter(kf,
+    #                   os.path.join(input_dir, "TUD-CAMPUS"),
+    #                   NOISE_1,
+    #                   "matching",
+    #                   save_frames,
+    #                   template_rect)
+
+    # kf = ps5.KalmanFilter(10, 235, R=0.2 * np.eye(2))
+    #
+    # kalman.run_kalman_filter(kf,
+    #                   os.path.join(input_dir, "TUD-CAMPUS"),
+    #                   NOISE_1,
+    #                   "matching",
+    #                   save_frames,
+    #                   None)
+
+    # kf = ps5.KalmanFilter(300, 235, R=0.2 * np.eye(2))
+    #
+    # kalman_2.run_kalman_filter(kf,
+    #                          os.path.join(input_dir, "TUD-CAMPUS"),
+    #                          NOISE_1,
+    #                          "matching",
+    #                          save_frames,
+    #                          None)
+    # ------------------------------------ 15, 26
+
+    num_particles_1 = 800
+    sigma_md_1 = 10
+    sigma_dyn_1 = 15
+    filter_1 = None
+
+    num_particles_2 = 600
+    sigma_md_2 = 0
+    sigma_dyn_2 = 17
+    filter_2 = None
+
+    num_particles_3 = 800
+    sigma_md_3 = 5
+    sigma_dyn_3 = 17
+    filter_3 = None
+
+    imgs_list = [f for f in os.listdir("input_images/TUD-Campus")
+                 if f[0] != '.' and f.endswith('.jpg')]
+    imgs_list.sort()
+
+    frame_num = 0
+    # ps5.MDParticleFilter
+    template_1 = multi_filter.get_template_1()
+    template_2 = multi_filter.get_template_2()
+    template_3 = multi_filter.get_template_3()
+
+    # Loop over video (till last frame or Ctrl+C is presssed)
+    for img in imgs_list:
+
+        frame = cv2.imread(os.path.join("input_images/TUD-Campus", img))
+        if filter_1 is None:
+            filter_1 = ps5.AppearanceModelPF(frame, template_1, num_particles=num_particles_1, sigma_exp=sigma_md_1,
+                                             sigma_dyn=sigma_dyn_1, alpha=0.0, in_gray_mode=False,
+                                             use_threshold=True, threshold=40.0)
+        if filter_2 is None:
+            filter_2 = ps5.AppearanceModelPF(frame, template_2, num_particles=num_particles_2, sigma_exp=sigma_md_2,
+                                             sigma_dyn=sigma_dyn_2, alpha=0.0, in_gray_mode=False)
+        if filter_3 is None:
+            filter_3 = ps5.AppearanceModelPF(frame, template_3, num_particles=num_particles_3, sigma_exp=sigma_md_3,
+                                             sigma_dyn=sigma_dyn_3, alpha=0.0, in_gray_mode=False)
+
+        multi_filter.process_filters(filter_1, filter_2, filter_3, frame, frame_num, save_frames=save_frames)
+        # if frame_num == 13:
+        #     filter_1.sigma_exp += 40
+        #     filter_1.sigma_dyn += 10
+        # if frame_num == 17:
+        #     filter_1.sigma_exp -= 40
+        #     filter_1.sigma_dyn -= 10
+        # if frame_num == 33:
+        #     filter_1.sigma_exp += 40
+        #     filter_1.sigma_dyn += 10
+        # if frame_num == 38:
+        #     filter_1.sigma_exp -= 40
+        #     filter_1.sigma_dyn -= 10
+        frame_num += 1
+    print("done")
+    # raise NotImplementedError
 
 
 def part_6():
@@ -328,7 +431,7 @@ if __name__ == '__main__':
     # part_1c()
     # part_2a()
     # part_2b()
-    part_3()
+    # part_3()
     # part_4()
-    # part_5()
+    part_5()
     # part_6()

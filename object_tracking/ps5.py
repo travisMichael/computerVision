@@ -118,6 +118,10 @@ class ParticleFilter(object):
 
         # template = cv2.cvtColor(template,cv2.COLOR_BGR2GRAY)
         # frame = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+        self.use_threshold = kwargs.get('use_threshold', False)
+        self.threshold = kwargs.get('threshold', 42)
+        self.sigma_exp_original = self.sigma_exp
+        self.sigma_dyn_original = self.sigma_dyn
         self.template = template
         self.in_gray_mode = kwargs.get('in_gray_mode', True)
         if self.in_gray_mode:
@@ -544,13 +548,20 @@ class AppearanceModelPF(ParticleFilter):
         h = best_patch.shape[0]
         w = best_patch.shape[1]
         resized_previous = cv2.resize(previous_template, (w,h))
-        # template_error = self.get_template_error(resized_previous, best_patch)
+        template_error = self.get_template_error(resized_previous, best_patch)
+        if self.use_threshold:
+            if template_error < self.threshold:
+                self.sigma_dyn = self.sigma_dyn_original
+                self.sigma_exp = self.sigma_exp_original
+            else:
+                self.sigma_dyn = self.sigma_dyn_original + 10
+                self.sigma_exp = self.sigma_exp_original - 35
         if self.use_constant_alpha:
-            alpha = 0.05
+            alpha = self.alpha # 0.05
         else:
             alpha = self.get_alpha()
         # alpha = self.alpha
-        print(self.time, alpha)
+        print(self.time, alpha, template_error)
 
         new_template = alpha * best_patch + (1 - alpha) * resized_previous
         # self.update_previous_templates(new_template, template_error)
