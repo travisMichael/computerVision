@@ -5,38 +5,55 @@ import numpy as np
 
 
 def process_filters(filter_1, filter_2, filter_3, frame, frame_num, save_frames={}):
+    out_frame = frame.copy()
+    # save_frame = frame.copy()
+    if frame_num < 49:
+        filter_1.process(frame)
+        filter_1.render(out_frame)
 
-    # if frame_num > 49:
-    #     continue
-    # filter_1.process(frame)
-    # render(frame_num, frame, filter_1, save_frames)
+    if frame_num < 62:
+        filter_2.process(frame)
+        filter_2.render(out_frame)
 
-    # filter_2.process(frame)
-    # render(frame_num, frame, filter_2, save_frames)
-
-    if frame_num > 25:
-        render(frame_num, frame, filter_3, save_frames)
-        filter_3.process(frame)
-        render(frame_num, frame, filter_3, save_frames)
+    # if frame_num > 21:
+    #     x, y = filter_3.process(frame)
+    #     filter_3.render(out_frame)
+        # render(frame_num, out_frame, filter_3, save_frames,  x, y, 3)
 
     # Update frame number
+    # render_t()
+    render(out_frame)
+    save(frame_num, out_frame, save_frames)
     frame_num += 1
     if frame_num % 20 == 0:
         print('Working on frame {}'.format(frame_num))
 
 
-def render(frame_num, frame, filter, save_frames):
-    if True:  # For debugging, it displays every frame
-        out_frame = frame.copy()
-        filter.render(out_frame)
-        cv2.imshow('Tracking', out_frame)
-        cv2.waitKey(1)
-
+def save(frame_num, frame, save_frames):
     # Render and save output, if indicated
     if frame_num in save_frames:
-        frame_out = frame.copy()
-        filter.render(frame_out)
-        cv2.imwrite(save_frames[frame_num], frame_out)
+
+        cv2.imwrite(save_frames[frame_num], frame)
+
+
+def render(frame):
+    if True:  # For debugging, it displays every frame
+        cv2.imshow('Tracking', frame)
+        cv2.waitKey(1)
+
+    # render_t(frame_num, x, y, filter, frame, f)
+
+
+def render_t(n, x, y, filter, frame, f):
+    template = filter.template
+    if n == 54 and f == 3:
+        x_int = int(x) - 10
+        y_int = int(y)
+        h_2 = int(template.shape[0]/2)
+        w_2 = int(template.shape[1]/2)
+        template = frame[y_int-h_2:y_int + h_2+1, x_int-w_2:x_int + w_2]
+        filter.template = template
+        cv2.imwrite("out/n_template.png", template)
 
 
 def initialize_filter(filter_class, frame, template, **kwargs):
@@ -83,10 +100,23 @@ def get_template_2():
 
     return template
 
+# def get_template_3():
+#
+#     frame = cv2.imread("input_images/TUD-Campus/000025.jpg")
+#     template_rect = {'x': 0, 'y': 175, 'w': 38, 'h': 145}
+#
+#     template = frame[int(template_rect['y']):int(template_rect['y'] + template_rect['h']),
+#                int(template_rect['x']):int(template_rect['x'] + template_rect['w'])]
+#
+#     cv2.imwrite("out/template_3.png", template)
+#
+#     return template
+
+
 def get_template_3():
 
-    frame = cv2.imread("input_images/TUD-Campus/000025.jpg")
-    template_rect = {'x': 0, 'y': 175, 'w': 38, 'h': 145}
+    frame = cv2.imread("input_images/TUD-Campus/000022.jpg")
+    template_rect = {'x': 0, 'y': 185, 'w': 38, 'h': 165}
 
     template = frame[int(template_rect['y']):int(template_rect['y'] + template_rect['h']),
                int(template_rect['x']):int(template_rect['x'] + template_rect['w'])]
@@ -95,5 +125,5 @@ def get_template_3():
 
     return template
 
-get_template_1()
+get_template_3()
 print()
