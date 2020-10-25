@@ -434,24 +434,25 @@ def part_6():
 
     Place all your work in this file and this section.
     """
-    template_rect = {'x': 210, 'y': 37, 'w': 103, 'h': 285}
+    template_rect = {'x': 96, 'y': 55, 'w': 30, 'h': 72}
 
-    save_frames = {40: os.path.join(output_dir, 'ps5-4-a-1.png'),
-                   100: os.path.join(output_dir, 'ps5-4-a-2.png'),
-                   240: os.path.join(output_dir, 'ps5-4-a-3.png'),
-                   300: os.path.join(output_dir, 'ps5-4-a-4.png')}
+    save_frames = {60: os.path.join(output_dir, 'ps5-6-a-1.png'),
+                   160: os.path.join(output_dir, 'ps5-6-a-2.png'),
+                   186: os.path.join(output_dir, 'ps5-6-a-3.png')}
 
-    num_particles = 0  # Define the number of particles
-    sigma_md = 30  # Define the value of sigma for the measurement exponential equation
-    sigma_dyn = 9  # Define the value of sigma for the particles movement (dynamics)
+    num_particles = 300
+    sigma_md = 10
+    sigma_dyn = 17
+    box = {'x_min': 85, 'x_max': 121, 'y_min': 50, 'y_max': 150}
 
     run_particle_filter(ps5.MDParticleFilter,
-                        os.path.join(input_dir, "pedestrians"),
+                        os.path.join(input_dir, "follow"),
                         template_rect,
                         save_frames,
                         num_particles=num_particles, sigma_exp=sigma_md,
-                        sigma_dyn=sigma_dyn,
-                        template_coords=template_rect)  # Add more if you need to
+                        sigma_dyn=sigma_dyn, in_gray_mode=False, alpha=0.5,
+                        template_coords=template_rect, min_d=-0.3, max_d=0.3,
+                        use_box_initialization=True, box=box)
     print("done")
 
 if __name__ == '__main__':
