@@ -150,21 +150,8 @@ class ParticleFilter(object):
         self.t_w = t_w
         self.t_h_2 = int(t_h/2)
         self.t_w_2 = int(t_w/2)
-        # self.d = -20
-        # self.motion_variance = kwargs.get('parameter_name', default_value)
-        # self.motion_variance = 3 # 13
-        # if h + w > 610:
-        #     self.motion_variance = 3 # 20
         self.z = np.ones(self.num_particles, dtype=np.float) / self.num_particles
         self.time = 0
-        # self.min_mse = 100000.0
-        # self.current_mse = -1
-        # self.is_occluded = False
-        # self.previous_templates = [1, 2, 3, 4, 5, 6, 7]
-        # self.template_error_size = 50
-        # self.template_error = [1000]*self.template_error_size
-        # self.complete_update = False
-        # todo initialize beliefs?
 
     def get_particle(self, i):
         x, y, t_size = self.particles[i]
@@ -463,12 +450,32 @@ class ParticleFilter(object):
 
         x_weighted_mean = 0
         y_weighted_mean = 0
+        size_weighted_mean = 0
 
         for i in range(self.num_particles):
-            x, y, _ = self.get_particle(i)
-            cv2.circle(frame_in, (x, y), 2, (0, 0, 255), 2)
+            x, y, size = self.get_particle(i)
+            cv2.circle(frame_in, (x, y), 1, (0, 0, 255), 1)
             x_weighted_mean += self.particles[i, 0] * self.weights[i]
             y_weighted_mean += self.particles[i, 1] * self.weights[i]
+            size_weighted_mean += self.particles[i, 2] * self.weights[i]
+
+        h_2 = self.t_h_2 * size_weighted_mean
+        w_2 = self.t_w_2 * size_weighted_mean
+        left_x = int(x_weighted_mean - w_2)
+        right_x = int(x_weighted_mean + w_2)
+
+        top_y = int(y_weighted_mean - h_2)
+        bottom_y = int(y_weighted_mean + h_2)
+
+        cv2.rectangle(frame_in,(left_x, top_y),(right_x, bottom_y),(0,255,0),3)
+
+        x_d = self.particles[:, 0] - x_weighted_mean
+        y_d = self.particles[:, 1] - y_weighted_mean
+        z_d = np.sqrt(x_d ** 2 + y_d ** 2)
+        z_d_weighted = np.multiply(z_d, self.weights)
+        z_d = np.sum(z_d_weighted)
+        if z_d < 200:
+            cv2.circle(frame_in, (int(x_weighted_mean), int(y_weighted_mean)), int(z_d), (255, 0, 0), 2)
 
         # Complete the rest of the code as instructed.
         if file is not None and render:
