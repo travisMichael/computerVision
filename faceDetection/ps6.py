@@ -62,8 +62,8 @@ def get_mean_face(x):
     Returns:
         numpy.array: Mean face.
     """
-
-    raise NotImplementedError
+    mean_f = np.mean(x, axis=0)
+    return mean_f
 
 
 def pca(X, k):
@@ -83,8 +83,23 @@ def pca(X, k):
             eigenvectors (numpy.array): 2D array with the top k eigenvectors.
             eigenvalues (numpy.array): array with the top k eigenvalues.
     """
+    n = X.shape[1]
+    mean_f = get_mean_face(X)
+    diff = X - mean_f
+    exp_1 = np.expand_dims(diff, axis=2)
+    exp_2 = np.expand_dims(diff, axis=1)
 
-    raise NotImplementedError
+    temp = np.matmul(exp_1, exp_2)
+    cov = np.sum(temp, axis=0)
+
+    eigen_values, eigen_vectors = np.linalg.eigh(cov)
+    k_eigen_values = eigen_values[n-k:n]
+    k_eigen_vectors = eigen_vectors[:, n-k:n]
+
+    flipped_values = np.flip(k_eigen_values, axis=0)
+    flipped_vectors = np.flip(k_eigen_vectors, axis=1)
+
+    return flipped_vectors, flipped_values
 
 
 class Boosting:
