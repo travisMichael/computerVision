@@ -64,7 +64,12 @@ def visualize_mean_face(x_mean, size, new_dims):
     Returns:
         numpy.array: Mean face uint8 2D array.
     """
-    return NotImplementedError
+    two_d = np.reshape(x_mean, size)
+    min_value = two_d.min()
+    max_value = two_d.max()
+    normalized = (two_d - min_value) / (max_value - min_value) * 255
+    resized = cv2.resize(normalized, new_dims)
+    return resized
 
 
 def part_1a_1b():
@@ -149,8 +154,8 @@ def part_2a():
     # Picking random numbers
     rand_y = np.random.choice([-1, 1], (len(ytrain)))
     # TODO: find which of these labels match ytrain and report its accuracy
-    rand_accuracy = None
-    raise NotImplementedError
+    matching_indices = np.where(rand_y == ytrain)[0]
+    rand_accuracy = matching_indices.shape[0] / ytrain.shape[0]
     print('(Random) Training accuracy: {0:.2f}%'.format(rand_accuracy))
 
     # Using Weak Classifier
@@ -159,11 +164,11 @@ def part_2a():
     wk_clf.train()
     wk_results = [wk_clf.predict(x) for x in Xtrain]
     # TODO: find which of these labels match ytrain and report its accuracy
-    wk_accuracy = None
-    raise NotImplementedError
+    matching_indices = np.where(wk_results == ytrain)[0]
+    wk_accuracy = matching_indices.shape[0] / ytrain.shape[0]
     print('(Weak) Training accuracy {0:.2f}%'.format(wk_accuracy))
 
-    num_iter = 5
+    num_iter = 10
 
     boost = ps6.Boosting(Xtrain, ytrain, num_iter)
     boost.train()
@@ -174,21 +179,21 @@ def part_2a():
     # Picking random numbers
     rand_y = np.random.choice([-1, 1], (len(ytest)))
     # TODO: find which of these labels match ytest and report its accuracy
-    rand_accuracy = None
-    raise NotImplementedError
+    matching_indices = np.where(rand_y == ytest)[0]
+    rand_accuracy = matching_indices.shape[0] / ytest.shape[0]
     print('(Random) Testing accuracy: {0:.2f}%'.format(rand_accuracy))
 
     # Using Weak Classifier
     wk_results = [wk_clf.predict(x) for x in Xtest]
     # TODO: find which of these labels match ytest and report its accuracy
-    wk_accuracy = None
-    raise NotImplementedError
+    matching_indices = np.where(wk_results == ytest)[0]
+    wk_accuracy = matching_indices.shape[0] / ytest.shape[0]
     print('(Weak) Testing accuracy {0:.2f}%'.format(wk_accuracy))
 
     y_pred = boost.predict(Xtest)
     # TODO: find which of these labels match ytest and report its accuracy
-    boost_accuracy = None
-    raise NotImplementedError
+    matching_indices = np.where(y_pred == ytest)[0]
+    boost_accuracy = matching_indices.shape[0] / ytest.shape[0]
     print('(Boosting) Testing accuracy {0:.2f}%'.format(boost_accuracy))
 
 
@@ -258,9 +263,9 @@ def part_4_c():
 
 
 if __name__ == "__main__":
-    part_1a_1b()
-    part_1c()
+    # part_1a_1b()
+    # part_1c()
     part_2a()
-    part_3a()
-    part_4_a_b()
-    part_4_c()
+    # part_3a()
+    # part_4_a_b()
+    # part_4_c()
