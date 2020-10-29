@@ -20,10 +20,23 @@ def load_images(folder, size=(32, 32)):
                              (row:observations, col:features) (float).
             y (numpy.array): 1D array of labels (int).
     """
+    n = size[0] * size[1]
+    image_files = [f for f in os.listdir(folder) if f.endswith(".png")]
+    m = len(image_files)
 
-    images_files = [f for f in os.listdir(folder) if f.endswith(".png")]
+    x = np.zeros((m, n))
+    y = np.zeros(m)
 
-    raise NotImplementedError
+    for i in range(len(image_files)):
+        file = image_files[i]
+        subject = int(file.split(".")[0].split('t')[1])
+        image = cv2.imread(folder + "/" + file, 0)
+        image_resized = cv2.resize(image, (size[0], size[1]))
+        flattened = np.ndarray.flatten(image_resized)
+        x[i,:] = flattened
+        y[i] = subject
+
+    return x, y
 
 
 def split_dataset(X, y, p):
@@ -47,8 +60,18 @@ def split_dataset(X, y, p):
             Xtest (numpy.array): Test data test 2D array.
             ytest (numpy.array): Test data labels.
     """
+    m = X.shape[0]
+    indices = np.arange(m)
+    random_indices = np.random.permutation(indices)
+    n = int(m * p)
 
-    raise NotImplementedError
+    X_train = X[random_indices[0:(m-n)], :]
+    X_test = X[random_indices[(m-n):m], :]
+
+    y_train = y[random_indices[0:(m-n)]]
+    y_test = y[random_indices[(m-n):m]]
+
+    return X_train, y_train, X_test, y_test
 
 
 def get_mean_face(x):
@@ -136,9 +159,27 @@ class Boosting:
         self.weights = np.array([1.0 / self.num_obs] * self.num_obs)  # uniform weights
         self.eps = 0.0001
 
+    def normalize_weights(self):
+        self.weights = self.weights / np.sum(self.weights)
+
     def train(self):
         """Implement the for loop shown in the problem set instructions."""
-        raise NotImplementedError
+        for i in range(self.num_iterations):
+            self.normalize_weights()
+            wk_clf = WeakClassifier(self.Xtrain, self.ytrain, self.weights)
+            wk_clf.train()
+            wk_results = [wk_clf.predict(x) for x in self.Xtrain]
+            non_matching_indices = np.where(wk_results != self.ytrain)[0]
+            e = np.sum(self.weights[non_matching_indices])
+            a = np.log((1-e)/e) / 2.0
+            self.alphas.append(a)
+            self.weakClassifiers.append(wk_clf)
+            if e < self.eps:
+                break
+            new_weights = np.exp(wk_results * self.ytrain * -1 * a)
+            self.weights += new_weights
+            print(e)
+        print("done training")
 
     def evaluate(self):
         """Return the number of correct and incorrect predictions.
@@ -152,7 +193,12 @@ class Boosting:
                 correct (int): Number of correct predictions.
                 incorrect (int): Number of incorrect predictions.
         """
-        raise NotImplementedError
+        boosting_results = self.predict(self.Xtrain)
+        matching_indices = np.where(boosting_results == self.ytrain)[0]
+        correct = matching_indices.shape[0]
+        total = self.ytrain.shape[0]
+        incorrect = total - correct
+        return correct, incorrect
 
     def predict(self, X):
         """Return predictions for a given array of observations.
@@ -166,7 +212,17 @@ class Boosting:
         Returns:
             numpy.array: Predictions, one for each row in X.
         """
-        raise NotImplementedError
+        m = X.shape[0]
+        summed_predictions = np.zeros(m, dtype=np.float)
+        k = len(self.alphas)
+        for i in range(k):
+            wk_clf = self.weakClassifiers[i]
+            a = self.alphas[i]
+            predictions = [wk_clf.predict(x) for x in X]
+            weighted_prediction = np.array(predictions, dtype=np.float) * a
+            summed_predictions += weighted_prediction
+
+        return np.sign(summed_predictions)
 
 
 class HaarFeature:
