@@ -380,6 +380,30 @@ class HaarFeature:
         raise NotImplementedError
 
 
+def to_integral_image(image):
+    integral = np.zeros_like(image, dtype=np.float)
+
+    h = image.shape[0]
+    w = image.shape[1]
+
+    for i in range(h):
+        for j in range(w):
+            top_value = 0.0
+            left_value = 0.0
+            diagonal_value = 0.0
+            current_value = image[i, j]
+            if i > 0:
+                top_value = integral[i-1, j]
+            if j > 0:
+                left_value = integral[i, j-1]
+            if i > 0 and j > 0:
+                diagonal_value = integral[i-1, j-1]
+
+            integral[i, j] = current_value + top_value + left_value - diagonal_value
+
+    return integral
+
+
 def convert_images_to_integral_images(images):
     """Convert a list of grayscale images to integral images.
 
@@ -389,8 +413,9 @@ def convert_images_to_integral_images(images):
     Returns:
         (list): List of integral images.
     """
+    integral_images = [to_integral_image(img) for img in images]
 
-    raise NotImplementedError
+    return integral_images
 
 
 class ViolaJones:
