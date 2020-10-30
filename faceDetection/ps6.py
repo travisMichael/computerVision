@@ -255,8 +255,13 @@ class HaarFeature:
         Returns:
             numpy.array: Image containing a Haar feature. (uint8).
         """
-
-        raise NotImplementedError
+        feature = np.zeros((shape[0], shape[1]), dtype=np.float)
+        embedded_feature = np.zeros((self.size[0], self.size[1]), dtype=np.float)
+        mid_point = int(self.size[0] / 2)
+        embedded_feature[0:mid_point, :] = 255.0
+        embedded_feature[mid_point:self.size[0], :] = 126.0
+        feature[self.position[0]:self.position[0] + self.size[0], self.position[1]:self.position[1] + self.size[1]] = embedded_feature
+        return feature
 
     def _create_two_vertical_feature(self, shape):
         """Create a feature of type (1, 2).
@@ -269,8 +274,13 @@ class HaarFeature:
         Returns:
             numpy.array: Image containing a Haar feature. (uint8).
         """
-
-        raise NotImplementedError
+        feature = np.zeros((shape[0], shape[1]), dtype=np.float)
+        embedded_feature = np.zeros((self.size[0], self.size[1]), dtype=np.float)
+        mid_point = int(self.size[1] / 2)
+        embedded_feature[:, 0:mid_point] = 255.0
+        embedded_feature[:, mid_point:self.size[1]] = 126.0
+        feature[self.position[0]:self.position[0] + self.size[0], self.position[1]:self.position[1] + self.size[1]] = embedded_feature
+        return feature
 
     def _create_three_horizontal_feature(self, shape):
         """Create a feature of type (3, 1).
@@ -283,8 +293,13 @@ class HaarFeature:
         Returns:
             numpy.array: Image containing a Haar feature. (uint8).
         """
-
-        raise NotImplementedError
+        feature = np.zeros((shape[0], shape[1]), dtype=np.float)
+        embedded_feature = np.zeros((self.size[0], self.size[1]), dtype=np.float)
+        embedded_feature[:, :] = 255.0
+        boundary_point = int(self.size[0] / 3)
+        embedded_feature[boundary_point:boundary_point*2, :] = 126.0
+        feature[self.position[0]:self.position[0] + self.size[0], self.position[1]:self.position[1] + self.size[1]] = embedded_feature
+        return feature
 
     def _create_three_vertical_feature(self, shape):
         """Create a feature of type (1, 3).
@@ -297,8 +312,13 @@ class HaarFeature:
         Returns:
             numpy.array: Image containing a Haar feature. (uint8).
         """
-
-        raise NotImplementedError
+        feature = np.zeros((shape[0], shape[1]), dtype=np.float)
+        embedded_feature = np.zeros((self.size[0], self.size[1]), dtype=np.float)
+        embedded_feature[:, :] = 255.0
+        boundary_point = int(self.size[1] / 3)
+        embedded_feature[:, boundary_point:boundary_point*2] = 126.0
+        feature[self.position[0]:self.position[0] + self.size[0], self.position[1]:self.position[1] + self.size[1]] = embedded_feature
+        return feature
 
     def _create_four_square_feature(self, shape):
         """Create a feature of type (2, 2).
@@ -311,8 +331,15 @@ class HaarFeature:
         Returns:
             numpy.array: Image containing a Haar feature. (uint8).
         """
-
-        raise NotImplementedError
+        feature = np.zeros((shape[0], shape[1]), dtype=np.float)
+        embedded_feature = np.zeros((self.size[0], self.size[1]), dtype=np.float)
+        embedded_feature[:, :] = 126.0
+        mid_point_y = int(self.size[0] / 2)
+        mid_point_x = int(self.size[1] / 2)
+        embedded_feature[mid_point_y:self.size[0], 0:mid_point_x] = 255.0
+        embedded_feature[0:mid_point_y, mid_point_x:self.size[1]] = 255.0
+        feature[self.position[0]:self.position[0] + self.size[0], self.position[1]:self.position[1] + self.size[1]] = embedded_feature
+        return feature
 
     def preview(self, shape=(24, 24), filename=None):
         """Return an image with a Haar-like feature of a given type.
