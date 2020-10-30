@@ -413,7 +413,7 @@ class HaarFeature:
             score = self.evaluate_three_by_one(ii)
 
         if self.feat_type == (1, 3):  # three_vertical
-            score = self._create_three_vertical_feature(ii)
+            score = self.evaluate_one_by_three(ii)
 
         if self.feat_type == (2, 2):  # four_square
             score = self.evaluate_two_by_two(ii)
@@ -421,8 +421,27 @@ class HaarFeature:
         return score
 
     def evaluate_one_by_three(self, ii):
+        boundary_point_x = int(self.size[1] / 3)
 
-        return 0
+        top_left = self.position
+        bottom_left = (top_left[0] + self.size[0], top_left[1])
+
+        top_middle_left = (top_left[0], top_left[1] + boundary_point_x)
+        bottom_middle_left = (top_left[0] + self.size[0], top_left[1] + boundary_point_x)
+
+        top_middle_right = (top_left[0], top_left[1] + boundary_point_x*2)
+        bottom_middle_right = (top_left[0] + self.size[0], top_left[1] + boundary_point_x*2)
+
+        top_right = (top_left[0], top_left[1] + self.size[1])
+        bottom_right = (top_left[0] + self.size[0], top_left[1] + self.size[1])
+
+        # sum = D - C - B + A
+        left_sum = ii[d(bottom_middle_left)] - ii[d(bottom_left)] - ii[d(top_middle_left)] + ii[d(top_left)]
+        middle_sum = ii[d(bottom_middle_right)] - ii[d(bottom_middle_left)] - ii[d(top_middle_right)] + ii[d(top_middle_left)]
+        right_sum = ii[d(bottom_right)] - ii[d(bottom_middle_right)] - ii[d(top_right)] + ii[d(top_middle_right)]
+
+        score = left_sum + right_sum - middle_sum
+        return score
 
     def evaluate_three_by_one(self, ii):
         boundary_point_y = int(self.size[0] / 3)
