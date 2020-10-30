@@ -425,8 +425,25 @@ class HaarFeature:
         return 0
 
     def evaluate_three_by_one(self, ii):
+        boundary_point_y = int(self.size[0] / 3)
 
-        return 0
+        top_left = self.position
+        top_middle_left = (top_left[0] + boundary_point_y, top_left[1])
+        bottom_middle_left = (top_left[0] + boundary_point_y*2, top_left[1])
+        bottom_left = (top_left[0] + self.size[0], top_left[1])
+
+        top_right = (top_left[0], top_left[1] + self.size[1])
+        top_middle_right = (top_left[0] + boundary_point_y, top_left[1] + self.size[1])
+        bottom_middle_right = (top_left[0] + boundary_point_y*2, top_left[1] + self.size[1])
+        bottom_right = (top_left[0] + self.size[0], top_left[1] + self.size[1])
+
+        # sum = D - C - B + A
+        top_sum = ii[d(top_middle_right)] - ii[d(top_middle_left)] - ii[d(top_right)] + ii[d(top_left)]
+        middle_sum = ii[d(bottom_middle_right)] - ii[d(bottom_middle_left)] - ii[d(top_middle_right)] + ii[d(top_middle_left)]
+        bottom_sum = ii[d(bottom_right)] - ii[d(bottom_left)] - ii[d(bottom_middle_right)] + ii[d(bottom_middle_left)]
+
+        score = top_sum + bottom_sum - middle_sum
+        return score
 
     def evaluate_one_by_two(self, ii):
         mid_point_x = int(self.size[1] / 2)
@@ -448,15 +465,14 @@ class HaarFeature:
 
     def evaluate_two_by_one(self, ii):
         mid_point_y = int(self.size[0] / 2)
-        mid_point_x = int(self.size[1] / 2)
 
         top_left = self.position
         middle_left = (top_left[0] + mid_point_y, top_left[1])
-        bottom_left = (top_left[0] + mid_point_y*2, top_left[1])
+        bottom_left = (top_left[0] + self.size[0], top_left[1])
 
-        top_right = (top_left[0], top_left[1] + mid_point_x*2)
-        middle_right = (top_left[0] + mid_point_y, top_left[1] + mid_point_x*2)
-        bottom_right = (top_left[0] + mid_point_y*2, top_left[1] + mid_point_x*2)
+        top_right = (top_left[0], top_left[1] + self.size[1])
+        middle_right = (top_left[0] + mid_point_y, top_left[1] + self.size[1])
+        bottom_right = (top_left[0] + self.size[0], top_left[1] + self.size[1])
 
         # sum = D - C - B + A
         top_sum = ii[d(middle_right)] - ii[d(middle_left)] - ii[d(top_right)] + ii[d(top_left)]
@@ -470,15 +486,15 @@ class HaarFeature:
 
         top_left = self.position
         middle_left = (top_left[0] + mid_point_y, top_left[1])
-        bottom_left = (top_left[0] + mid_point_y*2, top_left[1])
+        bottom_left = (top_left[0] + self.size[0], top_left[1])
 
         top_middle = (top_left[0], top_left[1] + mid_point_x)
         middle_middle = (top_left[0] + mid_point_y, top_left[1] + mid_point_x)
-        bottom_middle = (top_left[0] + mid_point_y*2, top_left[1] + mid_point_x)
+        bottom_middle = (top_left[0] + self.size[0], top_left[1] + mid_point_x)
 
-        top_right = (top_left[0], top_left[1] + mid_point_x*2)
-        middle_right = (top_left[0] + mid_point_y, top_left[1] + mid_point_x*2)
-        bottom_right = (top_left[0] + mid_point_y*2, top_left[1] + mid_point_x*2)
+        top_right = (top_left[0], top_left[1] + self.size[1])
+        middle_right = (top_left[0] + mid_point_y, top_left[1] + self.size[1])
+        bottom_right = (top_left[0] + self.size[0], top_left[1] + self.size[1])
 
         # sum = D - C - B + A
         top_left_sum = ii[d(middle_middle)] - ii[d(middle_left)] - ii[d(top_middle)] + ii[d(top_left)]
