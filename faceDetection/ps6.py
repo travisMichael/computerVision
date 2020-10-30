@@ -403,10 +403,48 @@ class HaarFeature:
         Returns:
             float: Score value.
         """
-        # score = self.evaluate_two_by_two(ii)
-        score = self.evaluate_two_by_one(ii)
+        if self.feat_type == (2, 1):  # two_horizontal
+            score = self.evaluate_two_by_one(ii)
+
+        if self.feat_type == (1, 2):  # two_vertical
+            score = self.evaluate_one_by_two(ii)
+
+        if self.feat_type == (3, 1):  # three_horizontal
+            score = self.evaluate_three_by_one(ii)
+
+        if self.feat_type == (1, 3):  # three_vertical
+            score = self._create_three_vertical_feature(ii)
+
+        if self.feat_type == (2, 2):  # four_square
+            score = self.evaluate_two_by_two(ii)
 
         return score
+
+    def evaluate_one_by_three(self, ii):
+
+        return 0
+
+    def evaluate_three_by_one(self, ii):
+
+        return 0
+
+    def evaluate_one_by_two(self, ii):
+        mid_point_x = int(self.size[1] / 2)
+
+        top_left = self.position
+        bottom_left = (top_left[0] + self.size[0], top_left[1])
+
+        top_middle = (top_left[0], top_left[1] + mid_point_x)
+        bottom_middle = (top_left[0] + self.size[0], top_left[1] + mid_point_x)
+
+        top_right = (top_left[0], top_left[1] + self.size[1])
+        bottom_right = (top_left[0] + self.size[0], top_left[1] + self.size[1])
+
+        # sum = D - C - B + A
+        left_white_pixel_sum = ii[d(bottom_middle)] - ii[d(bottom_left)] - ii[d(top_middle)] + ii[d(top_left)]
+        right_gray_pixel_sum = ii[d(bottom_right)] - ii[d(bottom_middle)] - ii[d(top_right)] + ii[d(top_middle)]
+
+        return left_white_pixel_sum - right_gray_pixel_sum
 
     def evaluate_two_by_one(self, ii):
         mid_point_y = int(self.size[0] / 2)
@@ -443,11 +481,11 @@ class HaarFeature:
         bottom_right = (top_left[0] + mid_point_y*2, top_left[1] + mid_point_x*2)
 
         # sum = D - C - B + A
-        top_left_sum = ii[middle_middle] - ii[l(middle_left)] - ii[u(top_middle)] + ii[d(top_left)]
-        bottom_left_sum = ii[bottom_middle] - ii[l(bottom_left)] - ii[u(middle_middle)] + ii[d(middle_left)]
+        top_left_sum = ii[d(middle_middle)] - ii[d(middle_left)] - ii[d(top_middle)] + ii[d(top_left)]
+        bottom_left_sum = ii[d(bottom_middle)] - ii[d(bottom_left)] - ii[d(middle_middle)] + ii[d(middle_left)]
 
-        top_right_sum = ii[middle_right] - ii[l(middle_middle)] - ii[u(top_right)] + ii[d(top_middle)]
-        bottom_right_sum = ii[bottom_right] - ii[l(bottom_middle)] - ii[u(middle_right)] + ii[d(middle_middle)]
+        top_right_sum = ii[d(middle_right)] - ii[d(middle_middle)] - ii[d(top_right)] + ii[d(top_middle)]
+        bottom_right_sum = ii[d(bottom_right)] - ii[d(bottom_middle)] - ii[d(middle_right)] + ii[d(middle_middle)]
 
         score = bottom_left_sum + top_right_sum - top_left_sum - bottom_right_sum
         return score
@@ -455,14 +493,6 @@ class HaarFeature:
 
 def d(shape):
     return shape[0] - 1, shape[1] - 1
-
-
-def l(shape):
-    return shape[0], shape[1] - 1
-
-
-def u(shape):
-    return shape[0] - 1, shape[1]
 
 
 def to_integral_image(image):
