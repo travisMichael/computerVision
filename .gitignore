@@ -1,3 +1,5 @@
+faceDetection/.idea/**
+faceDetection/input_images/**
 object_tracking/input_images/**
 object_removal/image_states/**
 object_removal/resources.zip
