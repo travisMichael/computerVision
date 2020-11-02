@@ -610,7 +610,7 @@ class ViolaJones:
                         for posj in range(0, 24 - sizej + 1, 4):
                             haarFeatures.append(
                                 HaarFeature(feat_type, [posi, posj],
-                                            [sizei-1, sizej-1]))
+                                            [sizei, sizej]))
         self.haarFeatures = haarFeatures
 
     def train(self, num_classifiers):
@@ -622,6 +622,9 @@ class ViolaJones:
         for i, im in enumerate(self.integralImages):
             scores[i, :] = [hf.evaluate(im) for hf in self.haarFeatures]
 
+        np.save("scores.npy", scores, allow_pickle=True)
+        # scores = np.load("scores.npy")
+
         weights_pos = np.ones(len(self.posImages), dtype='float') * 1.0 / (
                            2*len(self.posImages))
         weights_neg = np.ones(len(self.negImages), dtype='float') * 1.0 / (
@@ -630,10 +633,26 @@ class ViolaJones:
 
         print(" -- select classifiers --")
         for i in range(num_classifiers):
+            # normalize
+            weights = weights / np.sum(weights)
 
-            # TODO: Complete the Viola Jones algorithm
+            h_of_x = VJ_Classifier(scores, self.labels, weights)
+            h_of_x.train()
+            e_t = h_of_x.error
+            B_t = e_t / (1 - e_t)
+            a_t = np.log(1/B_t)
+            self.classifiers.append(h_of_x)
+            self.alphas.append(a_t)
 
-            raise NotImplementedError
+            # update weights
+            predictions = [h_of_x.predict(x) for x in scores]
+            incorrect_indices = np.where(self.labels != predictions)
+            b_array = np.zeros_like(self.labels, dtype=np.float)
+            b_array[incorrect_indices] = 1.0
+            b_array[b_array == 0] = B_t
+            temp_weights = np.multiply(weights, b_array)
+            weights = temp_weights
+            print("Training: ", str(i))
 
     def predict(self, images):
         """Return predictions for a given list of images.
@@ -652,6 +671,13 @@ class ViolaJones:
         # Populate the score location for each classifier 'clf' in
         # self.classifiers.
 
+        feature_index_list = [clf.feature for clf in self.classifiers]
+
+        for i, im in enumerate(ii):
+            scores[i, feature_index_list] = [self.haarFeatures[hf_index].evaluate(im) for hf_index in feature_index_list]
+
+        # print("2")
+
         # Obtain the Haar feature id from clf.feature
 
         # Use this id to select the respective feature object from
@@ -664,10 +690,18 @@ class ViolaJones:
 
         # Append the results for each row in 'scores'. This value is obtained
         # using the equation for the strong classifier H(x).
-
+        alpha_sum = np.sum(self.alphas)
         for x in scores:
-            # TODO
-            raise NotImplementedError
+            local_sum = 0.0
+            for i in range(len(feature_index_list)):
+                clf = self.classifiers[i]
+                alpha = self.alphas[i]
+                local_sum += clf.predict(x) * alpha
+
+            if local_sum >= alpha_sum / 2:
+                result.append(1)
+            else:
+                result.append(-1)
 
         return result
 
@@ -686,5 +720,19 @@ class ViolaJones:
         Returns:
             None.
         """
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        gray = cv2.copyMakeBorder(gray, 12, 12, 12, 12, cv2.BORDER_CONSTANT)
+        ii = convert_images_to_integral_images([gray])[0]
 
-        raise NotImplementedError
+        h = gray.shape[0]
+        w = gray.shape[1]
+
+        for i in range(12, h-12):
+            for j in range(12, w-12):
+                ii_sub_window = ii[i-12:i+12, j-12:j+12]
+                # get the feature scores for this sub window
+                # then predict, based on the scores
+                result = self.predict([ii_sub_window])
+                if result == 1:
+                    print(i, j)
+
