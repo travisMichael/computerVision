@@ -739,8 +739,8 @@ class ViolaJones:
                     y_cumulative += i
                     count += 1.0
 
-        x = int(x_cumulative)
-        y = int(y_cumulative)
+        x = int(x_cumulative / count)
+        y = int(y_cumulative / count)
 
         image_w_rectangle = cv2.rectangle(image, (x-12, y-12), (x+12, y+12), [0, 0, 255], 2)
         cv2.imwrite(filename + ".png", image_w_rectangle)
