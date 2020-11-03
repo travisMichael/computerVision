@@ -38,7 +38,7 @@ def process_filters(filter_1, filter_2, filter_3, frame, frame_num, save_frames=
             render_t_3(frame_num, x, y, filter_3, frame)
 
     render(out_frame)
-    save(frame_num, out_frame, save_frames)
+    # save(frame_num, out_frame, save_frames)
     frame_num += 1
     if frame_num % 20 == 0:
         print('Working on frame {}'.format(frame_num))
@@ -196,7 +196,7 @@ def run_particle_filter(filter_class, imgs_dir, template_rect,
         if frame_num in save_frames:
             frame_out = frame.copy()
             pf.render(frame_out)
-            cv2.imwrite(save_frames[frame_num], frame_out)
+            # cv2.imwrite(save_frames[frame_num], frame_out)
 
         # Update frame number
         frame_num += 1
@@ -555,8 +555,8 @@ if __name__ == '__main__':
     # part_1b()
     # part_1c()
     # part_2a()
-    part_2b()
+    # part_2b()
     # part_3()
     # part_4()
-    # part_5()
-    # part_6()
+    #part_5()
+    part_6()

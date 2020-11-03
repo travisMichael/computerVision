@@ -606,10 +606,10 @@ class AppearanceModelPF(ParticleFilter):
         new_template = alpha * best_patch + (1 - alpha) * resized_previous
         # self.update_previous_templates(new_template, template_error)
         self.template = new_template
-        # if write:
-        #     cv2.imwrite("out/best_template/t_" + str(self.time) + ".png", best_patch)
-        #     cv2.imwrite("out/template/t_" + str(self.time) + ".png", self.template)
-        #     cv2.imwrite("out/previous_template/t_" + str(self.time) + ".png", previous_template)
+        if write:
+            cv2.imwrite("out/best_template/t_" + str(self.time) + ".png", best_patch)
+            cv2.imwrite("out/template/t_" + str(self.time) + ".png", self.template)
+            cv2.imwrite("out/previous_template/t_" + str(self.time) + ".png", previous_template)
 
     def process(self, frame):
         """Processes a video frame (image) and updates the filter's state.
