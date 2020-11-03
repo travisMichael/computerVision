@@ -375,10 +375,10 @@ class HaarFeature:
             X = self._create_four_square_feature(shape)
 
         if filename is None:
-            cv2.imwrite("output/{}_feature.png".format(self.feat_type), X)
+            cv2.imwrite("{}_feature.png".format(self.feat_type), X)
 
         else:
-            cv2.imwrite("output/{}.png".format(filename), X)
+            cv2.imwrite("{}.png".format(filename), X)
 
         return X
 

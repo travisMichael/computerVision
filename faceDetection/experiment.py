@@ -62,6 +62,7 @@ def load_images_from_dir(data_dir, size=(24, 24), ext=".png"):
 
     return imgs
 
+
 # Utility function
 def plot_eigen_faces(eig_vecs, fig_name="", visualize=False):
     r = np.ceil(np.sqrt(len(eig_vecs)))
@@ -190,7 +191,6 @@ def part_2a():
 
     # Picking random numbers
     rand_y = np.random.choice([-1, 1], (len(ytrain)))
-    # TODO: find which of these labels match ytrain and report its accuracy
     matching_indices = np.where(rand_y == ytrain)[0]
     rand_accuracy = matching_indices.shape[0] / ytrain.shape[0]
     print('(Random) Training accuracy: {0:.2f}%'.format(rand_accuracy))
@@ -200,7 +200,6 @@ def part_2a():
     wk_clf = ps6.WeakClassifier(Xtrain, ytrain, uniform_weights)
     wk_clf.train()
     wk_results = [wk_clf.predict(x) for x in Xtrain]
-    # TODO: find which of these labels match ytrain and report its accuracy
     matching_indices = np.where(wk_results == ytrain)[0]
     wk_accuracy = matching_indices.shape[0] / ytrain.shape[0]
     print('(Weak) Training accuracy {0:.2f}%'.format(wk_accuracy))
@@ -215,20 +214,17 @@ def part_2a():
 
     # Picking random numbers
     rand_y = np.random.choice([-1, 1], (len(ytest)))
-    # TODO: find which of these labels match ytest and report its accuracy
     matching_indices = np.where(rand_y == ytest)[0]
     rand_accuracy = matching_indices.shape[0] / ytest.shape[0]
     print('(Random) Testing accuracy: {0:.2f}%'.format(rand_accuracy))
 
     # Using Weak Classifier
     wk_results = [wk_clf.predict(x) for x in Xtest]
-    # TODO: find which of these labels match ytest and report its accuracy
     matching_indices = np.where(wk_results == ytest)[0]
     wk_accuracy = matching_indices.shape[0] / ytest.shape[0]
     print('(Weak) Testing accuracy {0:.2f}%'.format(wk_accuracy))
 
     y_pred = boost.predict(Xtest)
-    # TODO: find which of these labels match ytest and report its accuracy
     matching_indices = np.where(y_pred == ytest)[0]
     boost_accuracy = matching_indices.shape[0] / ytest.shape[0]
     print('(Boosting) Testing accuracy {0:.2f}%'.format(boost_accuracy))
@@ -241,8 +237,17 @@ def part_3a():
     feature1 = ps6.HaarFeature((2, 1), (25, 30), (50, 100))
     feature1.preview((200, 200), filename="ps6-3-a-1.png")
 
-    # TODO: Generate and save all required images
-    raise NotImplementedError
+    feature1 = ps6.HaarFeature((1, 2), (10, 25), (50, 150))
+    feature1.preview((200, 200), filename="ps6-3-a-2.png")
+
+    feature1 = ps6.HaarFeature((3, 1), (50, 50), (100, 150))
+    feature1.preview((200, 200), filename="ps6-3-a-3.png")
+
+    feature1 = ps6.HaarFeature((1, 3), (50, 125), (100, 50))
+    feature1.preview((200, 200), filename="ps6-3-a-4.png")
+
+    feature1 = ps6.HaarFeature((2, 2), (50, 25), (100, 150))
+    feature1.preview((200, 200), filename="ps6-3-a-5.png")
 
 
 def part_4_a_b():
@@ -296,13 +301,13 @@ def  part_4_c():
 
     image = cv2.imread(os.path.join(INPUT_DIR, "man.jpeg"), -1)
     image = cv2.resize(image, (120, 60))
-    VJ.faceDetection(image, filename="ps4-4-c-1")
+    VJ.faceDetection(image, filename="ps6-4-c-1")
 
 
 if __name__ == "__main__":
     # part_1a_1b()
     # part_1c()
     # part_2a()
-    # part_3a()
-    part_4_a_b()
+    part_3a()
+    # part_4_a_b()
     # part_4_c()
