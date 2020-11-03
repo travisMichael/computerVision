@@ -725,24 +725,26 @@ class ViolaJones:
         h = gray.shape[0]
         w = gray.shape[1]
 
-        x = 0.0
-        y = 0.0
-        count = 1.0
-        negative_count = 1.0
+        x_cumulative = 0.0
+        y_cumulative = 0.0
+        count = 0.0
 
-        for i in range(15, h - 15, 1):
-            for j in range(20, w - 20, 1):
+        for i in range(12, h - 12, 1):
+            for j in range(12, w - 12, 1):
                 sub_window = gray[i-12:i+12, j-12:j+12]
 
                 result = self.predict([sub_window])[0]
                 if result == 1:
-                    x += j
-                    y += i
+                    x_cumulative += j
+                    y_cumulative += i
                     count += 1.0
-                else:
-                    negative_count += 1.0
 
-        print("position", x/count, y/count, count, negative_count)
+        x = int(x_cumulative)
+        y = int(y_cumulative)
+
+        image_w_rectangle = cv2.rectangle(image, (x-12, y-12), (x+12, y+12), [0, 0, 255], 2)
+        cv2.imwrite(filename + ".png", image_w_rectangle)
+
 
 
 

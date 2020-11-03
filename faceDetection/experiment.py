@@ -4,6 +4,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+import test
 
 import ps6
 
@@ -245,9 +246,13 @@ def part_4_a_b():
     print("Prediction accuracy on testing: {0:.2f}%".format(vj_accuracy))
 
 
-def part_4_c():
-    pos = load_images_from_dir(POS_DIR)[:20]
-    neg = load_images_from_dir(NEG_DIR)
+def  part_4_c():
+    # pos_dir = os.path.join(INPUT_DIR, "pos3")
+    # neg_dir = os.path.join(INPUT_DIR, "neg3")
+    # pos = load_images_from_dir(pos_dir)[:55]
+    # neg = load_images_from_dir(neg_dir)[:55]
+
+    pos, neg = test.do_it()
 
     images = pos + neg
 
@@ -255,7 +260,14 @@ def part_4_c():
     VJ = ps6.ViolaJones(pos, neg, integral_images)
     VJ.createHaarFeatures()
 
-    VJ.train(4)
+    VJ.train(1)
+
+    # real_labels = np.array(len(pos) * [1] + len(neg) * [-1])
+    # predictions = VJ.predict(images)
+    #
+    # matching_indices = np.where(predictions == real_labels)[0]
+    # rand_accuracy = matching_indices.shape[0] / real_labels.shape[0]
+    # print('(Random) Training accuracy: {0:.2f}%'.format(rand_accuracy))
 
     image = cv2.imread(os.path.join(INPUT_DIR, "man.jpeg"), -1)
     image = cv2.resize(image, (120, 60))
@@ -265,7 +277,7 @@ def part_4_c():
 if __name__ == "__main__":
     # part_1a_1b()
     # part_1c()
-    part_2a()
+    # part_2a()
     # part_3a()
     # part_4_a_b()
-    # part_4_c()
+    part_4_c()
