@@ -721,18 +721,28 @@ class ViolaJones:
             None.
         """
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        gray = cv2.copyMakeBorder(gray, 12, 12, 12, 12, cv2.BORDER_CONSTANT)
-        ii = convert_images_to_integral_images([gray])[0]
 
         h = gray.shape[0]
         w = gray.shape[1]
 
-        for i in range(12, h-12):
-            for j in range(12, w-12):
-                ii_sub_window = ii[i-12:i+12, j-12:j+12]
-                # get the feature scores for this sub window
-                # then predict, based on the scores
-                result = self.predict([ii_sub_window])
+        x = 0.0
+        y = 0.0
+        count = 1.0
+        negative_count = 1.0
+
+        for i in range(15, h - 15, 1):
+            for j in range(20, w - 20, 1):
+                sub_window = gray[i-12:i+12, j-12:j+12]
+
+                result = self.predict([sub_window])[0]
                 if result == 1:
-                    print(i, j)
+                    x += j
+                    y += i
+                    count += 1.0
+                else:
+                    negative_count += 1.0
+
+        print("position", x/count, y/count, count, negative_count)
+
+
 
