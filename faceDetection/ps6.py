@@ -178,8 +178,6 @@ class Boosting:
                 break
             new_weights = np.exp(wk_results * self.ytrain * -1 * a)
             self.weights += new_weights
-            print(e)
-        print("done training")
 
     def evaluate(self):
         """Return the number of correct and incorrect predictions.
