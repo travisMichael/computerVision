@@ -13,7 +13,7 @@ OUTPUT_DIR = "./"
 
 YALE_FACES_DIR = os.path.join(INPUT_DIR, 'Yalefaces')
 FACES94_DIR = os.path.join(INPUT_DIR, 'faces94')
-POS_DIR = os.path.join(INPUT_DIR, "pos")
+POS_DIR = os.path.join(INPUT_DIR, "pos2")
 NEG_DIR = os.path.join(INPUT_DIR, "neg")
 NEG2_DIR = os.path.join(INPUT_DIR, "neg2")
 
@@ -213,7 +213,7 @@ def part_4_a_b():
     pos = load_images_from_dir(POS_DIR)
     neg = load_images_from_dir(NEG_DIR)
 
-    train_pos = pos[:35]
+    train_pos = pos[:45]
     train_neg = neg[:]
     images = train_pos + train_neg
     labels = np.array(len(train_pos) * [1] + len(train_neg) * [-1])
@@ -222,26 +222,26 @@ def part_4_a_b():
     VJ = ps6.ViolaJones(train_pos, train_neg, integral_images)
     VJ.createHaarFeatures()
 
-    VJ.train(4)
+    VJ.train(5)
 
     VJ.haarFeatures[VJ.classifiers[0].feature].preview(filename="ps6-4-b-1")
     VJ.haarFeatures[VJ.classifiers[1].feature].preview(filename="ps6-4-b-2")
 
     predictions = VJ.predict(images)
-    vj_accuracy = None
-    raise NotImplementedError
+    matching_indices = np.where(predictions == labels)[0]
+    vj_accuracy = matching_indices.shape[0] / labels.shape[0]
     print("Prediction accuracy on training: {0:.2f}%".format(vj_accuracy))
 
     neg = load_images_from_dir(NEG2_DIR)
 
-    test_pos = pos[35:]
+    test_pos = pos[45:]
     test_neg = neg[:35]
     test_images = test_pos + test_neg
     real_labels = np.array(len(test_pos) * [1] + len(test_neg) * [-1])
     predictions = VJ.predict(test_images)
 
-    vj_accuracy = None
-    raise NotImplementedError
+    matching_indices = np.where(predictions == real_labels)[0]
+    vj_accuracy = matching_indices.shape[0] / real_labels.shape[0]
     print("Prediction accuracy on testing: {0:.2f}%".format(vj_accuracy))
 
 
