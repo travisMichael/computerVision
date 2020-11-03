@@ -4,7 +4,6 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import math
-import test
 
 import ps6
 
@@ -17,6 +16,43 @@ FACES94_DIR = os.path.join(INPUT_DIR, 'faces94')
 POS_DIR = os.path.join(INPUT_DIR, "pos2")
 NEG_DIR = os.path.join(INPUT_DIR, "neg")
 NEG2_DIR = os.path.join(INPUT_DIR, "neg2")
+
+
+def generate_examples():
+    image = cv2.imread("input_images/man.jpeg")
+    image = cv2.resize(image, (120, 60))
+
+    x = 62
+    y = 27
+    t = 12
+
+    pos = []
+    neg = []
+    for i in range(5):
+        for j in range(5):
+            x_ = x - i
+            y_ = y - j
+            sub_window = np.copy(image[y_-t:y_+t, x_-t:x_+t])
+            pos.append(cv2.cvtColor(sub_window, cv2.COLOR_BGR2GRAY))
+
+            x_ = x + i
+            y_ = y + j
+            sub_window = np.copy(image[y_-t:y_+t, x_-t:x_+t])
+            pos.append(cv2.cvtColor(sub_window, cv2.COLOR_BGR2GRAY))
+
+    h = image.shape[0]
+    w = image.shape[1]
+    for i in range(15, h - 15, 5):
+        for j in range(20, w - 20, 5):
+            x_ = j
+            y_ = i
+            distance = np.sqrt( (x-x_)**2 + (y-y_)**2)
+            if distance < 20:
+                continue
+            sub_window = np.copy(image[y_-t:y_+t, x_-t:x_+t])
+            neg.append(cv2.cvtColor(sub_window, cv2.COLOR_BGR2GRAY))
+
+    return pos, neg
 
 
 def load_images_from_dir(data_dir, size=(24, 24), ext=".png"):
@@ -214,7 +250,7 @@ def part_4_a_b():
     pos = load_images_from_dir(POS_DIR)
     neg = load_images_from_dir(NEG_DIR)
 
-    train_pos = pos[:45]
+    train_pos = pos[:35]
     train_neg = neg[:]
     images = train_pos + train_neg
     labels = np.array(len(train_pos) * [1] + len(train_neg) * [-1])
@@ -235,7 +271,7 @@ def part_4_a_b():
 
     neg = load_images_from_dir(NEG2_DIR)
 
-    test_pos = pos[45:]
+    test_pos = pos[35:]
     test_neg = neg[:35]
     test_images = test_pos + test_neg
     real_labels = np.array(len(test_pos) * [1] + len(test_neg) * [-1])
@@ -247,12 +283,8 @@ def part_4_a_b():
 
 
 def  part_4_c():
-    # pos_dir = os.path.join(INPUT_DIR, "pos3")
-    # neg_dir = os.path.join(INPUT_DIR, "neg3")
-    # pos = load_images_from_dir(pos_dir)[:55]
-    # neg = load_images_from_dir(neg_dir)[:55]
 
-    pos, neg = test.do_it()
+    pos, neg = generate_examples()
 
     images = pos + neg
 
@@ -261,13 +293,6 @@ def  part_4_c():
     VJ.createHaarFeatures()
 
     VJ.train(1)
-
-    # real_labels = np.array(len(pos) * [1] + len(neg) * [-1])
-    # predictions = VJ.predict(images)
-    #
-    # matching_indices = np.where(predictions == real_labels)[0]
-    # rand_accuracy = matching_indices.shape[0] / real_labels.shape[0]
-    # print('(Random) Training accuracy: {0:.2f}%'.format(rand_accuracy))
 
     image = cv2.imread(os.path.join(INPUT_DIR, "man.jpeg"), -1)
     image = cv2.resize(image, (120, 60))
@@ -279,5 +304,5 @@ if __name__ == "__main__":
     # part_1c()
     # part_2a()
     # part_3a()
-    # part_4_a_b()
-    part_4_c()
+    part_4_a_b()
+    # part_4_c()
