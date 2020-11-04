@@ -183,7 +183,7 @@ def part_1c():
             print("Accuracy: ", '{0:.2f}% accuracy'.format(result), "k: ", k, "p: ", p)
 
 
-def evaluate_faces_94(p, num_iter):
+def evaluate_faces_94(p):
     y0 = 1
     y1 = 2
 
@@ -204,6 +204,8 @@ def evaluate_faces_94(p, num_iter):
 
     Xtrain, ytrain, Xtest, ytest = ps6.split_dataset(X, y, p)
 
+    results = []
+
     # Picking random numbers
     rand_y = np.random.choice([-1, 1], (len(ytrain)))
     matching_indices = np.where(rand_y == ytrain)[0]
@@ -217,13 +219,23 @@ def evaluate_faces_94(p, num_iter):
     wk_results = [wk_clf.predict(x) for x in Xtrain]
     matching_indices = np.where(wk_results == ytrain)[0]
     wk__train_accuracy = matching_indices.shape[0] / ytrain.shape[0]
+    results.append(wk__train_accuracy)
     # print('(Weak) Training accuracy {0:.2f}%'.format(wk__train_accuracy))
 
+    num_iter = 4
     boost = ps6.Boosting(Xtrain, ytrain, num_iter)
     boost.train()
     good, bad = boost.evaluate()
-    boost_train_accuracy = 100 * float(good) / (good + bad)
+    boost_train_accuracy = float(good) / (good + bad)
+    results.append(boost_train_accuracy)
     # print('(Boosting) Training accuracy {0:.2f}%'.format(boost_train_accuracy))
+
+    num_iter = 12
+    boost_12 = ps6.Boosting(Xtrain, ytrain, num_iter)
+    boost_12.train()
+    good, bad = boost_12.evaluate()
+    boost_train_accuracy_12 = float(good) / (good + bad)
+    results.append(boost_train_accuracy_12)
 
     # Picking random numbers
     rand_y = np.random.choice([-1, 1], (len(ytest)))
@@ -235,55 +247,71 @@ def evaluate_faces_94(p, num_iter):
     wk_results = [wk_clf.predict(x) for x in Xtest]
     matching_indices = np.where(wk_results == ytest)[0]
     wk_test_accuracy = matching_indices.shape[0] / ytest.shape[0]
+    results.append(wk_test_accuracy)
     # print('(Weak) Testing accuracy {0:.2f}%'.format(wk_test_accuracy))
 
     y_pred = boost.predict(Xtest)
     matching_indices = np.where(y_pred == ytest)[0]
     boost_test_accuracy = matching_indices.shape[0] / ytest.shape[0]
+    results.append(boost_test_accuracy)
     # print('(Boosting) Testing accuracy {0:.2f}%'.format(boost_test_accuracy))
 
-    return rand_train_accuracy, wk__train_accuracy, boost_train_accuracy, rand_test_accuracy, wk_test_accuracy, boost_test_accuracy
+    y_pred = boost_12.predict(Xtest)
+    matching_indices = np.where(y_pred == ytest)[0]
+    boost_test_accuracy_12 = matching_indices.shape[0] / ytest.shape[0]
+    results.append(boost_test_accuracy_12)
+
+    return results
 
 
-def evaluate_avereage_faces_94(p, num_iter):
-    r_train_cumulative = 0.0
+def evaluate_avereage_faces_94(p):
     wk_train_cumulative = 0.0
     boost_train_cumulative = 0.0
-    r_test_cumulative = 0.0
+    boost_train_cumulative_12 = 0.0
     wk_test_cumulative = 0.0
     boost_test_cumulative = 0.0
+    boost_test_cumulative_12 = 0.0
 
-    n = 1
+    n = 15
 
     for i in range(n):
-        r_train, wk_train, boost_train, rand_test, wk_test, boost_test = evaluate_faces_94(p, num_iter)
-        r_train_cumulative += r_train
-        wk_train_cumulative += wk_train
-        boost_train_cumulative += boost_train
-        r_test_cumulative += rand_test
-        wk_test_cumulative += wk_test
-        boost_test_cumulative += boost_test
+        result_tuple = evaluate_faces_94(p)
+        wk_train_cumulative += result_tuple[0]
+        boost_train_cumulative += result_tuple[1]
+        boost_train_cumulative_12 += result_tuple[2]
+        wk_test_cumulative += result_tuple[3]
+        boost_test_cumulative += result_tuple[4]
+        boost_test_cumulative_12 += result_tuple[5]
 
-    r_train_f = r_train_cumulative / float(n)
-    wk_train_f = wk_train_cumulative / float(n)
-    boost_train_f = boost_train_cumulative / float(n)
-    rand_test_f = r_test_cumulative / float(n)
-    wk_test_f = wk_test_cumulative / float(n)
-    boost_test_f = boost_test_cumulative / float(n)
+    wk_train_f = wk_train_cumulative / float(n) * 100
+    boost_train_f = boost_train_cumulative / float(n) * 100
+    boost_train_f_12 = boost_train_cumulative_12 / float(n) * 100
+    wk_test_f = wk_test_cumulative / float(n) * 100
+    boost_test_f = boost_test_cumulative / float(n) * 100
+    boost_test_f_12 = boost_test_cumulative_12 / float(n) * 100
 
-    print("Random Training: ", '{0:.2f}%'.format(r_train_f),
-          "Weak Training: ", '{0:.2f}%'.format(wk_train_f),
+    print("Weak Training: ", '{0:.2f}%'.format(wk_train_f),
           "Boost Training: ", '{0:.2f}%'.format(boost_train_f),
-          "Random Test: ", '{0:.2f}%'.format(rand_test_f),
+          "Boost Training 12: ", '{0:.2f}%'.format(boost_train_f_12),
           "Weak Test: ", '{0:.2f}%'.format(wk_test_f),
-          "Boost Test: ", '{0:.2f}%'.format(boost_test_f))
+          "Boost Test: ", '{0:.2f}%'.format(boost_test_f),
+          "Boost Test 12: ", '{0:.2f}%'.format(boost_test_f_12))
+
+    return wk_train_f, boost_train_f, boost_train_f_12, wk_test_f, boost_test_f, boost_test_f_12
 
 
 def part_2a():
+    eval_matrix = np.zeros((5, 6), dtype=np.float)
 
-    for p in [0.3, 0.5, 0.7, 0.9]:
-        for k in [2, 4, 8, 12]:
-            evaluate_avereage_faces_94(p, k)
+    i = 0
+    for p in [0.15, 0.25, 0.5, 0.75, 0.85]:
+        eval_list = evaluate_avereage_faces_94(p)
+        for j in range(len(eval_list)):
+            eval_matrix[i, j] = eval_list[j]
+        i += 1
+
+    print()
+    print(eval_matrix)
 
 
 def part_3a():
@@ -361,9 +389,9 @@ def  part_4_c():
 
 
 if __name__ == "__main__":
-    # part_1a_1b()
-    # part_1c()
+    part_1a_1b()
+    part_1c()
     part_2a()
-    # part_3a()
-    # part_4_a_b()
-    # part_4_c()
+    part_3a()
+    part_4_a_b()
+    part_4_c()
