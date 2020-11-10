@@ -1,3 +1,5 @@
+stereo_correspondence/.idea/**
+stereo_correspondence/input_images/**
 faceDetection/.idea/**
 faceDetection/input_images/**
 object_tracking/input_images/**
