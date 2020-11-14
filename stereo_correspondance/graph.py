@@ -1,87 +1,197 @@
+import numpy as np
+import maxflow
+import energy
 
 
+class AlphaExpansion:
 
+    def __init__(self, left, right, labels, k=20):
+        self.L = left.astype(np.float)
+        self.R = right.astype(np.float)
+        self.labels = labels
+        self.h = left.shape[0]
+        self.w = left.shape[1]
+        self.f = self.initialize_labeling_function().flatten()
+        # K = potts model constant
+        self.K = k
+        self.increment = labels[1] - labels[0]
 
+    def initialize_labeling_function(self):
+        f = np.random.randint(low=0, high=self.labels.shape[0], size=(self.h, self.w))
+        for i in range(self.labels.shape[0]):
+            f[f == i] = self.labels[i]
 
+        return f
 
+    def get_labeling_from_partition(self, G, label):
+        f = np.copy(self.f)
+        nodes = np.arange(0, f.shape[0])
+        reachable = G.get_grid_segments(nodes)
+        f[reachable] = label
+        return f
 
+    def construct_graph(self, label):
 
+        # todo: initialize with better params
+        G = maxflow.Graph[int](2, 2)
+        G.add_nodes(self.f.shape[0])
 
-# https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.flow.minimum_cut.html
-def get_edges_from_st_cut(reachable, non_reachable, G):
-    cut_set = set()
-    for u, nbrs in ((n, G[n]) for n in reachable):
-        cut_set.update((u, v) for v in nbrs if v in non_reachable)
+        # data term will apply a penalty if a pixel in L does not correspond to a pixel in R, for the disparity label
+        print("Adding data")
+        G = self.add_data_edges(G, label)
+        # smoothness term is used is used to penalize pixels that are close to one another, but have a different label
+        print("Adding smoothness")
+        G = self.add_smoothness_edges(G, label)
 
+        return G
 
-# constructs a graph with nodes and edges and edge weights as discussed in the paper
-# according to the alpha beta swap method
-def construct_alpha_beta_graph_from_labeling_function(f, left, right, labels):
+    def D_p(self, p, label):
+        # find the best match within the label range, clipped at twenty
+        THRESHOLD = 20
+        p_index = np.unravel_index(p, (self.h, self.w))
 
-    G = nx.DiGraph()
+        I_p = self.L[p_index]
 
-    return 0.0
+        left = p_index[1] + np.max([label - (self.increment // 2), 0])
+        right = p_index[1] + np.min([label + (self.increment // 2), self.w - 1])
 
+        if left > self.w - 1:
+            return THRESHOLD
 
-def expand_graph(G, label_pair):
+        pixel_values = self.R[p_index[0], left:right]
 
-    H = G.copy()
+        abs_diff = abs(pixel_values - I_p)
+        value = np.min(abs_diff)
+        if value > THRESHOLD:
+            return THRESHOLD
 
-    return H
+        return value
 
+    def add_data_edges(self, G, label):
 
-def calculate_new_labeling(G, edge_cut_set):
-    f_prime = 0
+        pixel = 0
+        for i in range(self.h):
+            if i % 50 == 0:
+                print(i)
+            for j in range(self.w):
+                pixel_label = self.f[pixel]
+                from_source_cap = self.D_p(pixel, label)
+                if pixel_label == label:
+                    G.add_tedge(pixel, from_source_cap, 1000000)
+                else:
+                    G.add_tedge(pixel, from_source_cap, self.D_p(pixel, pixel_label))
 
-    return f_prime
+                pixel += 1
 
+        return G
 
-# performs a multi-way cut as described in the paper
-def multiway_cut(G, labels):
-    # set of edges that define the cut
-    edge_cut_set = []
-    cut_value_array = np.zeros_like(labels)
+    def V(self, p_label, q_label, p, q, interpolate=False):
+        if p_label == q_label:
+            return 0.0
 
-    for label in labels:
+        p_index = np.unravel_index(p, (self.h, self.w))
+        q_index = np.unravel_index(q, (self.h, self.w))
 
-        G_prime = expand_graph(G, label)
+        term_2 = self.L[q_index]
+        if interpolate:
+            term_2 = float(self.L[p_index] - self.L[q_index]) / 2.0
 
-        cut_value, partition = nx.minimum_cut(G, "s", "t")
+        intensity_diff = abs(self.L[p_index] - term_2)
 
-    return edge_cut_set
+        if intensity_diff > 5:
+            return self.K
 
+        return self.K * 2
 
-# Return true if an alpha-beta swap lowered the energy
-# Otherwise return false
-# def alpha_beta_swap_iteration(f, left, right, labels):
-#     energy_value = energy.calculate_energy(f, left, right)
-#     G = construct_alpha_beta_graph_from_labeling_function(f, left, right, labels)
-#
-#     edge_cut_set = multiway_cut(G, labels)
-#
-#     f_prime = calculate_new_labeling(G, edge_cut_set)
-#
-#     new_energy_value = energy.calculate_energy(f, left, right)
-#
-#     found_decreasing_cut = False
-#     if new_energy_value < energy_value:
-#         found_decreasing_cut = True
-#
-#     return found_decreasing_cut, f_prime
-#
-#
-# def alpha_beta_swap(left, right, labels):
-#     h = left.shape[0]
-#     w = left.shape[1]
-#     # f: pixel --> label
-#     f = energy.initialize_labeling_function((h, w), labels)
-#
-#     is_energy_decreasing = True
-#
-#     while is_energy_decreasing:
-#         is_energy_decreasing, f_prime = alpha_beta_swap_iteration(f, left, right, labels)
-#         if is_energy_decreasing:
-#             f = f_prime
-#
-#     return f
+    def add_neighborhood_edges(self, G, p, q, alpha):
+
+        f_p = self.f[p]
+        f_q = self.f[q]
+
+        if f_p == f_q:
+            pass
+            # G.add_edge(p, q, capacity=self.V(p, q))
+        else:
+            # create new intermediate node a and three new edges
+            nodes = G.add_nodes(1)
+            G.add_edge(p, nodes[0], self.V(f_p, alpha, p, q, interpolate=True), 0)
+            G.add_edge(nodes[0], q, self.V(alpha, f_q, p, q, interpolate=True), 0)
+            # G.add_edge(a, self.not_alpha, capacity=self.V(f_p, f_q, p, q))
+            G.add_tedge(nodes[0], 0, self.V(f_p, f_q, p, q))
+
+        return G
+
+    def add_smoothness_edges(self, G, alpha):
+        # assumes 4 neighboring edges (left, top, right, bottom)
+        pixel = 0
+        # a = self.f.shape[0]
+        for i in range(self.h):
+            if i % 50 == 0:
+                print(i)
+            for j in range(self.w):
+                if i > 0:
+                    top_pixel = pixel - self.w
+                    G = self.add_neighborhood_edges(G, pixel, top_pixel, alpha)
+
+                if i < self.h - 1:
+                    bottom_pixel = pixel + self.w
+                    G = self.add_neighborhood_edges(G, pixel, bottom_pixel, alpha)
+
+                if j > 0:
+                    left_pixel = pixel - 1
+                    G = self.add_neighborhood_edges(G, pixel, left_pixel, alpha)
+
+                if j < self.w - 1:
+                    right_pixel = pixel + 1
+                    G = self.add_neighborhood_edges(G, pixel, right_pixel, alpha)
+
+                pixel += 1
+
+        return G
+
+    def alpha_expansion(self, alpha):
+
+        G = self.construct_graph(alpha)
+        flow = G.maxflow()
+        return flow, G
+
+    def calculate_best_alpha_expansion(self):
+        current_energy = energy.calculate_energy(self.f, self.L, self.R)
+        print("current energy", current_energy)
+
+        labels = np.array([80])
+        cut_value_array = np.zeros_like(labels)
+        partition_list = []
+
+        for i in range(labels.shape[0]):
+            label = labels[i]
+            cut_value, partition = self.alpha_expansion(label)
+            cut_value_array[i] = cut_value
+            partition_list.append(partition)
+
+        min_cut_value_index = np.argmin(cut_value_array)
+        best_partition = partition_list[min_cut_value_index]
+
+        f_prime = self.get_labeling_from_partition(best_partition, labels[min_cut_value_index])
+
+        energy_after_expansion = energy.calculate_energy(f_prime, self.L, self.R)
+        print("energy after expansion", current_energy)
+
+        has_lowered_energy = False
+        if energy_after_expansion < current_energy:
+            has_lowered_energy = True
+
+        return has_lowered_energy, f_prime
+
+    def calculate_disparity_map(self):
+
+        has_expansion_reduced_energy = True
+
+        while has_expansion_reduced_energy:
+            has_expansion_reduced_energy, f = self.calculate_best_alpha_expansion()
+            if has_expansion_reduced_energy:
+                self.f = f
+
+        return self.f
+
 
