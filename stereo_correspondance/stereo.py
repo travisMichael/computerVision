@@ -1,14 +1,15 @@
 import cv2
 import numpy as np
+import graph_2
 
 
-def pairwise_stereo(left, right, method):
+def pairwise_stereo(left, right, labels, method):
     if method == "ssd":
         print("calculating stereo map ssd")
         return pairwise_stereo_ssd(left, right)
     elif method == "graph_cut":
         print("calculating stereo map graph cut")
-        return pairwise_stereo_graph_cut(left, right)
+        return pairwise_stereo_graph_cut(left, right, labels)
 
 
 def pairwise_stereo_ssd(left, right):
@@ -42,7 +43,13 @@ def pairwise_stereo_ssd(left, right):
     return None
 
 
-def pairwise_stereo_graph_cut(left, right):
+def pairwise_stereo_graph_cut(left, right, labels):
+
+    # use alpha beta swap to get f, where f: pixel --> label (f assigns a label to each pixel).
+    stereo_solver = graph_2.AlphaExpansion(left, right, labels)
+
+    f = stereo_solver.calculate_disparity_map()
+    # transform f into disparity map
 
     return None
 
