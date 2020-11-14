@@ -1,6 +1,7 @@
 import numpy as np
 import maxflow
 import energy
+import cv2
 
 
 class AlphaExpansion:
@@ -15,6 +16,11 @@ class AlphaExpansion:
         # K = potts model constant
         self.K = k
         self.increment = labels[1] - labels[0]
+        self.best_cut = np.inf
+
+    def save_disparity_map(self):
+        f = self.f.reshape((self.h, self.w))
+        cv2.imwrite("output/disparity.png", f)
 
     def initialize_labeling_function(self):
         f = np.random.randint(low=0, high=self.labels.shape[0], size=(self.h, self.w))
@@ -41,7 +47,7 @@ class AlphaExpansion:
         G = self.add_data_edges(G, label)
         # smoothness term is used is used to penalize pixels that are close to one another, but have a different label
         print("Adding smoothness")
-        G = self.add_smoothness_edges(G, label)
+        # G = self.add_smoothness_edges(G, label)
 
         return G
 
@@ -156,10 +162,12 @@ class AlphaExpansion:
         return flow, G
 
     def calculate_best_alpha_expansion(self):
-        current_energy = energy.calculate_energy(self.f, self.L, self.R)
-        print("current energy", current_energy)
+        self.save_disparity_map()
+        # current_energy = energy.calculate_energy(self.f, self.L, self.R)
+        print("current energy", self.best_cut)
 
-        labels = np.array([80])
+        labels = self.labels
+        # np.array([, 55, 75, 100]) #
         cut_value_array = np.zeros_like(labels)
         partition_list = []
 
@@ -170,15 +178,18 @@ class AlphaExpansion:
             partition_list.append(partition)
 
         min_cut_value_index = np.argmin(cut_value_array)
+        best_cut_value = cut_value_array[min_cut_value_index]
+        print("best cut index", min_cut_value_index)
         best_partition = partition_list[min_cut_value_index]
 
         f_prime = self.get_labeling_from_partition(best_partition, labels[min_cut_value_index])
 
-        energy_after_expansion = energy.calculate_energy(f_prime, self.L, self.R)
-        print("energy after expansion", current_energy)
+        # energy_after_expansion = energy.calculate_energy(f_prime, self.L, self.R)
+        print("energy after expansion", best_cut_value)
 
         has_lowered_energy = False
-        if energy_after_expansion < current_energy:
+        if best_cut_value < self.best_cut:
+            self.best_cut = best_cut_value
             has_lowered_energy = True
 
         return has_lowered_energy, f_prime
