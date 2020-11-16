@@ -1,5 +1,9 @@
 import networkx as nx
 import numpy as np
+import cv2
+
+d = cv2.imread("input_images/cones/disp2.png", 0)
+d = cv2.imread("output/disparity_ssd_map.png", 0)
 
 G = nx.DiGraph()
 

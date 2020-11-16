@@ -5,7 +5,7 @@ import cv2
 
 class AlphaExpansion:
 
-    def __init__(self, left, right, labels, k=10, k_not=5, increment=5, intensity_thesh=65):
+    def __init__(self, left, right, labels, k=10, k_not=5, increment=5, v_thresh=65, d_thresh=20):
         self.L = left.astype(np.float)
         self.R = right.astype(np.float)
         self.labels = labels
@@ -16,14 +16,15 @@ class AlphaExpansion:
         self.K = k
         self.K_not = k_not
         # threshold to determine when to use k or k_not for smoothness term
-        self.intensity_thresh = intensity_thesh
+        self.intensity_thresh = v_thresh
+        self.d_thresh = d_thresh
         # range to compare disparity with
         self.increment = increment
 
     # used to track how disparity changes after each expansion iteration
     def save_disparity_map(self):
         f = np.copy(self.f.reshape((self.h, self.w)))
-        f = f * 4
+        f = f * 9
         # l = 255.0 / (len(self.labels) + 1)
         # s = l
         # for label in self.labels:
@@ -63,10 +64,10 @@ class AlphaExpansion:
 
     def D_p(self, p, label):
         # find the best match within the label range, clipped at twenty
-        THRESHOLD = 50
+        THRESHOLD = self.d_thresh
         p_index = np.unravel_index(p, (self.h, self.w))
 
-        increment = 2
+        increment = self.increment
         I_p = self.L[p_index[0], p_index[1], :]
 
         left = p_index[1] + np.max([label - increment, 0])
@@ -75,11 +76,21 @@ class AlphaExpansion:
         if left > self.w - 1:
             return THRESHOLD
 
+        I_left = ((self.R[p_index[0], left, :] + I_p) / 2) - I_p
+        I_right = I_left
+        if left > self.w - 1:
+            I_right = ((self.R[p_index[0], right, :] + I_p) / 2) - I_p
+
         pixel_values = self.R[p_index[0], left:right, :]
 
         diff = pixel_values - I_p
         ssd = np.sqrt(np.sum(diff ** 2, axis=1))
-        value = np.min(ssd)
+        ssd_left = np.sqrt(np.sum(I_left ** 2))
+        ssd_right = np.sqrt(np.sum(I_right ** 2))
+        value = THRESHOLD
+        if ssd.shape[0] > 0:
+            value = np.min(ssd)
+        value = np.min(np.array([value, ssd_left, ssd_right]))
         if value > THRESHOLD:
             return THRESHOLD
 
@@ -131,8 +142,8 @@ class AlphaExpansion:
             p_q_dist = self.V(f_p, alpha, p, q)
             a_q_dist = self.V(alpha, f_q, q, p)
             nodes = G.add_nodes(1)
-            G.add_edge(p, nodes[0], p_q_dist, 0)
-            G.add_edge(q, nodes[0], a_q_dist, 0)
+            G.add_edge(p, nodes[0], p_q_dist, p_q_dist)
+            G.add_edge(q, nodes[0], a_q_dist, a_q_dist)
             G.add_tedge(nodes[0], 0, self.V(f_p, f_q, p, q))
 
         return G
@@ -173,7 +184,10 @@ class AlphaExpansion:
         best_f_prime = None
         has_lowered_energy = False
 
-        for i in range(labels.shape[0]):
+        arr = np.arange(labels.shape[0])
+        np.random.shuffle(arr)
+        # range(labels.shape[0])
+        for i in arr:
             label = labels[i]
             cut_value, partition = self.alpha_expansion(label)
             cut_value_array[i] = cut_value
@@ -185,6 +199,7 @@ class AlphaExpansion:
                 has_lowered_energy = True
                 current_energy = energy_after_expansion
                 best_f_prime = f_prime
+                break
 
         return has_lowered_energy, best_f_prime
 
