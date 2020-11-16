@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-import graph
+import graph_2 as graph
 
 
 # def pairwise_stereo(left, right, labels, method):
