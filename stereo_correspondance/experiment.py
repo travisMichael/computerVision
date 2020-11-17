@@ -57,10 +57,10 @@ def test_2_b():
     # labels = np.array([8, 13, 17, 21, 25, 29])
     # labels = np.array([10, 20, 30, 40, 50, 60, 70])
     increment = 1
-    k = 4
-    k_not = 2
-    intensity_thresh = 40
-    d_thresh = 25
+    k = 0.5
+    k_not = 0.5
+    intensity_thresh = 20
+    d_thresh = 20
 
     disparity_map = stereo.pairwise_stereo_graph_cut(left, right, labels, increment, k, k_not, intensity_thresh, d_thresh)
     print("hello")

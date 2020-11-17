@@ -5,21 +5,25 @@ import cv2
 
 class AlphaExpansion:
 
-    def __init__(self, left, right, labels, k=10, k_not=5, increment=5, v_thresh=65, d_thresh=20):
+    def __init__(self, left, right, labels, lambda_v):
         self.L = left.astype(np.float)
         self.R = right.astype(np.float)
         self.labels = labels
         self.h = left.shape[0]
         self.w = left.shape[1]
-        self.f = self.initialize_labeling_function().flatten()
+        self.n = self.h * self.w
+        self.d_low = labels[0]
+        self.d_high = labels[labels.shape[0]-1]
+        self.assignment_table = self.initialize_assignment_function()
+        self.lambda_v = lambda_v
         # k and k_not are potts model constants
-        self.K = k
-        self.K_not = k_not
+        # self.K = k
+        # self.K_not = k_not
         # threshold to determine when to use k or k_not for smoothness term
-        self.intensity_thresh = v_thresh
-        self.d_thresh = d_thresh
+        # self.intensity_thresh = v_thresh
+        # self.d_thresh = d_thresh
         # range to compare disparity with
-        self.increment = increment
+        # self.increment = increment
 
     # used to track how disparity changes after each expansion iteration
     def save_disparity_map(self):
@@ -33,19 +37,34 @@ class AlphaExpansion:
 
         cv2.imwrite("output/disparity.png", f)
 
-    def initialize_labeling_function(self):
-        f = np.random.randint(low=0, high=self.labels.shape[0], size=(self.h, self.w))
-        for i in range(self.labels.shape[0]):
-            f[f == i] = self.labels[i]
+    def initialize_assignment_function(self):
 
+        a_table = np.zeros((self.n+self.d_high, self.n))
+
+        f = np.random.randint(low=self.d_low, high=self.d_high, size=self.n)
+        p_indices = np.indices((1, self.n))[1, :, :]
+        q_indices = np.copy(p_indices) + f
+
+        a_table[q_indices, p_indices] = 1
+        return a_table
+
+    def get_f_from_assignment_table(self):
+        f_indices = np.where(self.assignment_table)
+        f = np.zeros((self.h, self.w))
+        for i, j in zip(f_indices[0], f_indices[1]):
+            index = np.unravel_index(j, (self.h, self.w))
+            disparity = i - j
+            f[index] = disparity
+            print(i, j)
         return f
 
     def get_labeling_from_partition(self, G, label):
-        f = np.copy(self.f)
-        nodes = np.arange(0, f.shape[0])
-        reachable = G.get_grid_segments(nodes)
-        f[np.where(reachable)] = label
-        return f
+        # todo
+        # f = np.copy(self.f)
+        # nodes = np.arange(0, f.shape[0])
+        # reachable = G.get_grid_segments(nodes)
+        # f[np.where(reachable)] = label
+        return
 
     def construct_graph(self, label):
 
@@ -53,50 +72,61 @@ class AlphaExpansion:
         G = maxflow.Graph[int](2, 2)
         G.add_nodes(self.f.shape[0])
 
+        print("Adding occlusion edges")
+        G = self.add_occlusion_edges(G, label)
+
         # data term will apply a penalty if a pixel in L does not correspond to a pixel in R, for the disparity label
-        print("Adding data")
+        print("Adding data edges")
         G = self.add_data_edges(G, label)
         # smoothness term is used is used to penalize pixels that are close to one another, but have a different label
-        print("Adding smoothness")
+        print("Adding smoothness edges")
         G = self.add_smoothness_edges(G, label)
 
         return G
 
-    def D_p(self, p, disparity):
+    def add_occlusion_edges(self, G, alpha):
+
+        assignment_indices = np.where(self.assignment_table)
+        for i, j in zip(assignment_indices[0], assignment_indices[1]):
+            # is assignment in alpha expansion set
+            # occ cost
+            print(i, j)
+
+        return G
+
+    def D_p(self, p, label):
         # find the best match within the label range, clipped at twenty
         THRESHOLD = self.d_thresh
         p_index = np.unravel_index(p, (self.h, self.w))
 
-        if p_index[1] + disparity > self.w - 2:
+        increment = self.increment
+        I_p = self.L[p_index[0], p_index[1], :]
+
+        left = p_index[1] + np.max([label - increment, 0])
+        right = p_index[1] + np.min([label + increment, self.w - 1])
+
+        if left > self.w - 1:
             return THRESHOLD
 
-        L_I_p = self.L[p_index[0], p_index[1], :]
-        L_I_p_l = (self.L[p_index[0], p_index[1]-1, :] + L_I_p) / 2
-        L_I_p_r = (self.L[p_index[0], p_index[1]+1, :] + L_I_p) / 2
+        I_left = ((self.R[p_index[0], left, :] + I_p) / 2) - I_p
+        I_right = I_left
+        if left > self.w - 1:
+            I_right = ((self.R[p_index[0], right, :] + I_p) / 2) - I_p
 
-        R_I_p = self.R[p_index[0], p_index[1]+disparity, :]
-        R_I_p_l = (self.R[p_index[0], p_index[1]+disparity-1, :] + R_I_p) / 2
-        R_I_p_r = (self.R[p_index[0], p_index[1]+disparity+1, :] + R_I_p) / 2
+        pixel_values = self.R[p_index[0], left:right, :]
 
-        L = np.zeros((3, 1, 1, 3))
-        L[0] = L_I_p
-        L[1] = L_I_p_l
-        L[2] = L_I_p_r
+        diff = pixel_values - I_p
+        ssd = np.sqrt(np.sum(diff ** 2, axis=1))
+        ssd_left = np.sqrt(np.sum(I_left ** 2))
+        ssd_right = np.sqrt(np.sum(I_right ** 2))
+        value = THRESHOLD
+        if ssd.shape[0] > 0:
+            value = np.min(ssd)
+        value = np.min(np.array([value, ssd_left, ssd_right]))
+        if value > THRESHOLD:
+            return THRESHOLD
 
-        R = np.zeros((3, 1, 1, 3))
-        R[0] = R_I_p
-        R[1] = R_I_p_l
-        R[2] = R_I_p_r
-
-        sum_abs_values_1 = np.sum(np.abs(R - L_I_p), axis=1)
-        sum_abs_values_2 = np.sum(np.abs(L - R_I_p), axis=1)
-
-        values = np.zeros(3)
-        values[0] = sum_abs_values_1.min()
-        values[1] = sum_abs_values_2.min()
-        values[2] = THRESHOLD
-
-        return np.min(values)
+        return value
 
     def add_data_edges(self, G, label):
 
@@ -144,16 +174,16 @@ class AlphaExpansion:
             p_q_dist = self.V(f_p, alpha, p, q)
             a_q_dist = self.V(alpha, f_q, q, p)
             nodes = G.add_nodes(1)
-            G.add_edge(p, q, p_q_dist, p_q_dist)
-            # G.add_edge(p, nodes[0], p_q_dist, p_q_dist)
-            # G.add_edge(q, nodes[0], a_q_dist, a_q_dist)
-            # G.add_tedge(nodes[0], 0, self.V(f_p, f_q, p, q))
+            G.add_edge(p, nodes[0], p_q_dist, p_q_dist)
+            G.add_edge(q, nodes[0], a_q_dist, a_q_dist)
+            G.add_tedge(nodes[0], 0, self.V(f_p, f_q, p, q))
 
         return G
 
     def add_smoothness_edges(self, G, alpha):
         # assumes 4 neighboring edges (left, top, right, bottom)
         pixel = 0
+        # a = self.f.shape[0]
         for i in range(self.h):
             for j in range(self.w):
                 if i < self.h - 1:
@@ -163,58 +193,6 @@ class AlphaExpansion:
                 if j < self.w - 1:
                     right_pixel = pixel + 1
                     G = self.add_neighborhood_edges(G, pixel, right_pixel, alpha)
-
-                if i < self.h - 1 and j < self.w - 1:
-                    bottom_pixel = pixel + self.w + 1
-                    G = self.add_neighborhood_edges(G, pixel, bottom_pixel, alpha)
-
-                if i < self.h - 2:
-                    bottom_pixel = pixel + 2*self.w
-                    G = self.add_neighborhood_edges(G, pixel, bottom_pixel, alpha)
-
-                if j < self.w - 2:
-                    right_pixel = pixel + 2
-                    G = self.add_neighborhood_edges(G, pixel, right_pixel, alpha)
-
-                if i < self.h - 2 and j < self.w - 2:
-                    bottom_pixel = pixel + 2*self.w + 2
-                    G = self.add_neighborhood_edges(G, pixel, bottom_pixel, alpha)
-
-                # if i < self.h - 3:
-                #     bottom_pixel = pixel + 2*self.w
-                #     G = self.add_neighborhood_edges(G, pixel, bottom_pixel, alpha)
-                #
-                # if j < self.w - 3:
-                #     right_pixel = pixel + 3
-                #     G = self.add_neighborhood_edges(G, pixel, right_pixel, alpha)
-                #
-                # if i < self.h - 3 and j < self.w - 3:
-                #     bottom_pixel = pixel + 3*self.w + 3
-                #     G = self.add_neighborhood_edges(G, pixel, bottom_pixel, alpha)
-                #
-                # if i < self.h - 4:
-                #     bottom_pixel = pixel + 2*self.w
-                #     G = self.add_neighborhood_edges(G, pixel, bottom_pixel, alpha)
-                #
-                # if j < self.w - 4:
-                #     right_pixel = pixel + 3
-                #     G = self.add_neighborhood_edges(G, pixel, right_pixel, alpha)
-                #
-                # if i < self.h - 4 and j < self.w - 4:
-                #     bottom_pixel = pixel + 4*self.w + 4
-                #     G = self.add_neighborhood_edges(G, pixel, bottom_pixel, alpha)
-                #
-                # if i < self.h - 4:
-                #     bottom_pixel = pixel + 2*self.w
-                #     G = self.add_neighborhood_edges(G, pixel, bottom_pixel, alpha)
-                #
-                # if j < self.w - 4:
-                #     right_pixel = pixel + 3
-                #     G = self.add_neighborhood_edges(G, pixel, right_pixel, alpha)
-                #
-                # if i < self.h - 5 and j < self.w - 5:
-                #     bottom_pixel = pixel + 5*self.w + 5
-                #     G = self.add_neighborhood_edges(G, pixel, bottom_pixel, alpha)
 
                 pixel += 1
 
