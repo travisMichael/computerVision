@@ -16,14 +16,6 @@ class AlphaExpansion:
         self.d_high = labels[labels.shape[0]-1]
         self.assignment_table = self.initialize_assignment_function()
         self.lambda_v = lambda_v
-        # k and k_not are potts model constants
-        # self.K = k
-        # self.K_not = k_not
-        # threshold to determine when to use k or k_not for smoothness term
-        # self.intensity_thresh = v_thresh
-        # self.d_thresh = d_thresh
-        # range to compare disparity with
-        # self.increment = increment
 
     # used to track how disparity changes after each expansion iteration
     def save_disparity_map(self):
@@ -58,226 +50,188 @@ class AlphaExpansion:
             print(i, j)
         return f
 
-    def get_labeling_from_partition(self, G, label):
+    def get_labeling_from_partition(self, G, label, A_0, A_alpha):
+        A_prime = []
         # todo
         # f = np.copy(self.f)
         # nodes = np.arange(0, f.shape[0])
         # reachable = G.get_grid_segments(nodes)
         # f[np.where(reachable)] = label
-        return
+        return A_prime
 
-    def construct_graph(self, label):
+    def calculate_expansion_tables(self, alpha):
+        A_0 = np.copy(self.assignment_table)
+        A_alpha = np.copy(self.assignment_table)
+
+        return A_0, A_alpha
+
+    def construct_graph(self, alpha, A_0, A_alpha):
 
         # todo: initialize with better params
         G = maxflow.Graph[int](2, 2)
-        G.add_nodes(self.f.shape[0])
 
-        print("Adding occlusion edges")
-        G = self.add_occlusion_edges(G, label)
+        assignment_edges = np.zeros_like(self.assignment_table)
 
-        # data term will apply a penalty if a pixel in L does not correspond to a pixel in R, for the disparity label
-        print("Adding data edges")
-        G = self.add_data_edges(G, label)
-        # smoothness term is used is used to penalize pixels that are close to one another, but have a different label
-        print("Adding smoothness edges")
-        G = self.add_smoothness_edges(G, label)
+        assignment_indices = np.where(self.assignment_table)
+        number_of_vertices = assignment_indices[0].shape[0]
+        if number_of_vertices > self.n:
+            raise RuntimeError("Too many assignments")
+        G.add_nodes(assignment_indices[0].shape[0])
+        for q, p in zip(assignment_indices[0], assignment_indices[1]):
+            s_a_cost = self.get_s_a_cost(p, q, alpha, A_0, A_alpha)
+            a_t_cost = self.get_a_t_cost(p, q, alpha, A_0, A_alpha)
+            G.add_tedge(p, s_a_cost, a_t_cost)
+            # an assignment a'=<p',q'> is a neighbor to another assignment a=<p,q> if
+            # p is as neighbor of p' or q is a neighbor of q'
+            G = self.add_neighborhood_edges(p, G, assignment_edges, A_0, A_alpha)
+            G = self.add_neighborhood_edges(q, G, assignment_edges, A_0, A_alpha)
+            G = self.add_expansion_edges(p, G, A_0, A_alpha)
 
         return G
 
     def add_occlusion_edges(self, G, alpha):
 
         assignment_indices = np.where(self.assignment_table)
-        for i, j in zip(assignment_indices[0], assignment_indices[1]):
-            # is assignment in alpha expansion set
-            # occ cost
-            print(i, j)
-
+        for q, p in zip(assignment_indices[0], assignment_indices[1]):
+            disparity = q - p
+            N_p = np.sum(self.assignment_table[:, p])
+            cost = 0
+            if N_p < 1:
+                cost = self.lambda_v
+            if disparity == alpha:
+                G.add_tedge(p, cost, 0)
+            else:
+                G.add_tedge(p, 0, cost)
         return G
 
-    def D_p(self, p, label):
-        # find the best match within the label range, clipped at twenty
+    def D_p(self, p, q):
+        # find the best match within the label range, clipped at thresh
         THRESHOLD = self.d_thresh
-        p_index = np.unravel_index(p, (self.h, self.w))
-
-        increment = self.increment
-        I_p = self.L[p_index[0], p_index[1], :]
-
-        left = p_index[1] + np.max([label - increment, 0])
-        right = p_index[1] + np.min([label + increment, self.w - 1])
-
-        if left > self.w - 1:
-            return THRESHOLD
-
-        I_left = ((self.R[p_index[0], left, :] + I_p) / 2) - I_p
-        I_right = I_left
-        if left > self.w - 1:
-            I_right = ((self.R[p_index[0], right, :] + I_p) / 2) - I_p
-
-        pixel_values = self.R[p_index[0], left:right, :]
-
-        diff = pixel_values - I_p
-        ssd = np.sqrt(np.sum(diff ** 2, axis=1))
-        ssd_left = np.sqrt(np.sum(I_left ** 2))
-        ssd_right = np.sqrt(np.sum(I_right ** 2))
-        value = THRESHOLD
-        if ssd.shape[0] > 0:
-            value = np.min(ssd)
-        value = np.min(np.array([value, ssd_left, ssd_right]))
-        if value > THRESHOLD:
-            return THRESHOLD
-
-        return value
-
-    def add_data_edges(self, G, label):
-
-        pixel = 0
-        for i in range(self.h):
-            # if i % 50 == 0:
-            #     print(i)
-            for j in range(self.w):
-                pixel_label = self.f[pixel]
-                from_source_cap = self.D_p(pixel, label)
-                if pixel_label == label:
-                    G.add_tedge(pixel, from_source_cap, 100000000)
-                else:
-                    G.add_tedge(pixel, from_source_cap, self.D_p(pixel, pixel_label))
-
-                pixel += 1
-
-        return G
-
-    def V(self, p_label, q_label, p, q):
-        if p_label == q_label:
-            return 0.0
-
         p_index = np.unravel_index(p, (self.h, self.w))
         q_index = np.unravel_index(q, (self.h, self.w))
 
-        diff = self.L[p_index[0], p_index[1], :] - self.L[q_index[0], q_index[1], :]
+        if q[1] > self.w - 1:
+            return THRESHOLD
 
-        intensity_diff = np.sqrt(np.sum(diff ** 2))
+        L_I_p = self.L[p_index, :]
+        R_I_p = self.R[q_index, :]
+        diff = L_I_p - R_I_p
+        squared = diff ** 2
+        value = np.sqrt(np.sum(squared))
+        if value > THRESHOLD:
+            return THRESHOLD
+        return value
 
-        if intensity_diff > self.intensity_thresh:
-            return self.K_not
+    def get_s_a_cost(self, p, q, alpha, A_0, A_alpha):
+        # todo
+        disparity = q - p
+        return 0.0
 
-        return self.K
+    def get_a_t_cost(self, p, q, alpha, A_0, A_alpha):
+        # todo
+        disparity = q - p
+        return 0.0
 
-    def add_neighborhood_edges(self, G, p, q, alpha):
+    def D_smooth(self, p, q):
+        # todo
+        return 0.0
 
-        f_p = self.f[p]
-        f_q = self.f[q]
+    def D_a(self, p, q):
+        # todo
+        return 0.0
 
-        if f_p == f_q:
-            return G
-        else:
-            # create new intermediate node a and three new edges
-            p_q_dist = self.V(f_p, alpha, p, q)
-            a_q_dist = self.V(alpha, f_q, q, p)
-            nodes = G.add_nodes(1)
-            G.add_edge(p, nodes[0], p_q_dist, p_q_dist)
-            G.add_edge(q, nodes[0], a_q_dist, a_q_dist)
-            G.add_tedge(nodes[0], 0, self.V(f_p, f_q, p, q))
+    def V(self):
+        # todo
+        return 0.0
+
+    def add_neighborhood_edges(self, p, G, assignment_edges, A_0, A_alpha):
+        # todo
+        # iterate through neighbors of p
+        # if q < self.n + self.d_high - 1 and p < self.n - 1:
+        #     # <q_2,p_2> has same disparity of <q,p>
+        #     q_2 = q + 1
+        #     p_2 = p + 1
+            # is_assigned = self.assignment_table[q_2, p_2]
+            # if assignment is different, add penalty
 
         return G
 
-    def add_smoothness_edges(self, G, alpha):
-        # assumes 4 neighboring edges (left, top, right, bottom)
-        pixel = 0
-        # a = self.f.shape[0]
-        for i in range(self.h):
-            for j in range(self.w):
-                if i < self.h - 1:
-                    bottom_pixel = pixel + self.w
-                    G = self.add_neighborhood_edges(G, pixel, bottom_pixel, alpha)
-
-                if j < self.w - 1:
-                    right_pixel = pixel + 1
-                    G = self.add_neighborhood_edges(G, pixel, right_pixel, alpha)
-
-                pixel += 1
+    def add_expansion_edges(self, p, G, A_0, A_alpha):
+        # todo
+        # G.add_edge(p, nodes[0], p_q_dist, p_q_dist)
 
         return G
 
-    def alpha_expansion(self, alpha):
+    def alpha_expansion(self, alpha, A_0, A_alpha):
 
-        G = self.construct_graph(alpha)
+        G = self.construct_graph(alpha, A_0, A_alpha)
         flow = G.maxflow()
         return flow, G
 
-    def calculate_best_alpha_expansion(self):
+    def calculate_alpha_expansion(self):
         self.save_disparity_map()
-        current_energy = self.calculate_energy(self.f)
+        current_energy = self.calculate_energy(self.assignment_table)
         print("current energy", current_energy)
 
         labels = self.labels
-        # np.array([, 55, 75, 100]) #
-        cut_value_array = np.zeros_like(labels)
-        partition_list = []
-        best_f_prime = None
-        has_lowered_energy = False
 
         arr = np.arange(labels.shape[0])
         np.random.shuffle(arr)
-        # range(labels.shape[0])
         for i in arr:
             label = labels[i]
+            A_0, A_alpha = self.calculate_expansion_tables(label)
             cut_value, partition = self.alpha_expansion(label)
-            cut_value_array[i] = cut_value
-            partition_list.append(partition)
-            f_prime = self.get_labeling_from_partition(partition, label)
-            energy_after_expansion = self.calculate_energy(f_prime)
+            A_prime = self.get_labeling_from_partition(partition, label, A_0, A_alpha)
+            energy_after_expansion = self.calculate_energy(A_prime)
             print("energy after expansion", energy_after_expansion, label)
             if energy_after_expansion < current_energy:
-                has_lowered_energy = True
-                current_energy = energy_after_expansion
-                best_f_prime = f_prime
-                break
+                return True, A_prime
 
-        return has_lowered_energy, best_f_prime
+        return False, None
 
     def calculate_disparity_map(self):
 
         has_expansion_reduced_energy = True
 
         while has_expansion_reduced_energy:
-            has_expansion_reduced_energy, f = self.calculate_best_alpha_expansion()
+            has_expansion_reduced_energy, A_prime = self.calculate_alpha_expansion()
             if has_expansion_reduced_energy:
-                self.f = f
+                self.assignment_table = A_prime
 
-        return self.f
+        f = self.get_f_from_assignment_table()
+        return f
 
     """
     ------------------------------ energy functions
     """
-    def calculate_energy(self, f):
-        s = self.calculate_smoothness_energy(f)
-        d = self.calculate_data_energy(f)
+    def calculate_energy(self, a_table):
+        smooth = self.calculate_smoothness_energy(a_table)
+        data = self.calculate_data_energy(a_table)
+        occ = self.calculate_occlusion_energy(a_table)
 
-        return d + s
+        return data + smooth + occ
 
-    def calculate_data_energy(self, f):
+    def calculate_occlusion_energy(self, a_table):
+        non_occluded_pixels = np.sum(a_table)
+        occluded_pixels = self.n - non_occluded_pixels
+
+        if occluded_pixels < 0:
+            raise RuntimeError("occluded pixel data error")
+
+        return non_occluded_pixels * self.lambda_v
+
+    def calculate_data_energy(self, a_table):
         pixel = 0
         sum = 0.0
-        for i in range(self.h):
-            for j in range(self.w):
-                sum += self.D_p(pixel, f[pixel])
-                pixel += 1
+        # todo
+
         return sum
 
     def calculate_smoothness_energy(self, f):
         pixel = 0
         sum = 0.0
-        for i in range(self.h):
-            for j in range(self.w):
+        # todo
 
-                if i < self.h - 1:
-                    bottom_pixel = pixel + self.w
-                    sum += self.V(f[pixel], f[bottom_pixel], pixel, bottom_pixel)
-
-                if j < self.w - 1:
-                    right_pixel = pixel + 1
-                    sum += self.V(f[pixel], f[right_pixel], pixel, right_pixel)
-                pixel += 1
         return sum
 
 
