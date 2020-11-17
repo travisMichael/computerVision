@@ -84,9 +84,10 @@ class AlphaExpansion:
             a += 1
 
         for q, p in zip(assignment_indices[0], assignment_indices[1]):
+            a = assignment_vertex_labels[q, p]
             s_a_cost = self.get_s_a_cost(p, q, alpha, A_0, A_alpha, assignment_vertex_labels)
             a_t_cost = self.get_a_t_cost(p, q, alpha, A_0, A_alpha, assignment_vertex_labels)
-            G.add_tedge(p, s_a_cost, a_t_cost)
+            G.add_tedge(a, s_a_cost, a_t_cost)
             # an assignment a'=<p',q'> is a neighbor to another assignment a=<p,q> if
             # p is as neighbor of p' or q is a neighbor of q'
             G = self.add_neighborhood_edges(p, G, assignment_edges, A_0, A_alpha, assignment_vertex_labels)
@@ -128,15 +129,28 @@ class AlphaExpansion:
             return THRESHOLD
         return value
 
-    def get_s_a_cost(self, p, q, alpha, A_0, A_alpha, assignment_vertex_labels):
-        # todo
-        disparity = q - p
+    def D_occ_p(self, p, A):
+        matches = np.sum(A[:,p])
+        if matches == 1:
+            return self.lambda_v
         return 0.0
 
+    def D_occ_a(self, p, q, A):
+        return self.D_occ_p(p, A) + self.D_occ_p(q, A)
+
+    def get_s_a_cost(self, p, q, alpha, A_0, A_alpha, assignment_vertex_labels):
+        a_0 = A_0[q, p]
+        if a_0 == 1:
+            return self.D_occ_a(p, q, A_0+A_alpha)
+
+        return self.D_a(p, q)
+
     def get_a_t_cost(self, p, q, alpha, A_0, A_alpha, assignment_vertex_labels):
-        # todo
-        disparity = q - p
-        return 0.0
+        a_alpha = A_alpha[q, p]
+        if a_alpha == 1:
+            return self.D_occ_a(p, q, A_0+A_alpha)
+
+        return self.D_a(p, q) + self.D_smooth(p, q)
 
     def D_smooth(self, p, q):
         # todo
