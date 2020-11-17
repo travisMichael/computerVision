@@ -71,21 +71,27 @@ class AlphaExpansion:
         G = maxflow.Graph[int](2, 2)
 
         assignment_edges = np.zeros_like(self.assignment_table)
+        assignment_vertex_labels = np.zeros_like(self.assignment_table)
 
         assignment_indices = np.where(self.assignment_table)
         number_of_vertices = assignment_indices[0].shape[0]
         if number_of_vertices > self.n:
             raise RuntimeError("Too many assignments")
         G.add_nodes(assignment_indices[0].shape[0])
+        a = 0
         for q, p in zip(assignment_indices[0], assignment_indices[1]):
-            s_a_cost = self.get_s_a_cost(p, q, alpha, A_0, A_alpha)
-            a_t_cost = self.get_a_t_cost(p, q, alpha, A_0, A_alpha)
+            assignment_vertex_labels[q, p] = a
+            a += 1
+
+        for q, p in zip(assignment_indices[0], assignment_indices[1]):
+            s_a_cost = self.get_s_a_cost(p, q, alpha, A_0, A_alpha, assignment_vertex_labels)
+            a_t_cost = self.get_a_t_cost(p, q, alpha, A_0, A_alpha, assignment_vertex_labels)
             G.add_tedge(p, s_a_cost, a_t_cost)
             # an assignment a'=<p',q'> is a neighbor to another assignment a=<p,q> if
             # p is as neighbor of p' or q is a neighbor of q'
-            G = self.add_neighborhood_edges(p, G, assignment_edges, A_0, A_alpha)
-            G = self.add_neighborhood_edges(q, G, assignment_edges, A_0, A_alpha)
-            G = self.add_expansion_edges(p, G, A_0, A_alpha)
+            G = self.add_neighborhood_edges(p, G, assignment_edges, A_0, A_alpha, assignment_vertex_labels)
+            G = self.add_neighborhood_edges(q, G, assignment_edges, A_0, A_alpha, assignment_vertex_labels)
+            G = self.add_expansion_edges(p, G, A_0, A_alpha, assignment_vertex_labels)
 
         return G
 
@@ -122,12 +128,12 @@ class AlphaExpansion:
             return THRESHOLD
         return value
 
-    def get_s_a_cost(self, p, q, alpha, A_0, A_alpha):
+    def get_s_a_cost(self, p, q, alpha, A_0, A_alpha, assignment_vertex_labels):
         # todo
         disparity = q - p
         return 0.0
 
-    def get_a_t_cost(self, p, q, alpha, A_0, A_alpha):
+    def get_a_t_cost(self, p, q, alpha, A_0, A_alpha, assignment_vertex_labels):
         # todo
         disparity = q - p
         return 0.0
@@ -144,7 +150,7 @@ class AlphaExpansion:
         # todo
         return 0.0
 
-    def add_neighborhood_edges(self, p, G, assignment_edges, A_0, A_alpha):
+    def add_neighborhood_edges(self, p, G, assignment_edges, A_0, A_alpha, assignment_vertex_labels):
         # todo
         # iterate through neighbors of p
         # if q < self.n + self.d_high - 1 and p < self.n - 1:
@@ -156,10 +162,25 @@ class AlphaExpansion:
 
         return G
 
-    def add_expansion_edges(self, p, G, A_0, A_alpha):
-        # todo
-        # G.add_edge(p, nodes[0], p_q_dist, p_q_dist)
+    def add_expansion_edges(self, p, G, A_0, A_alpha, assignment_vertex_labels):
+        matches = np.where(A_0[:, p])[0].shape
+        if matches == 0:
+            return G
 
+        q_0 = np.where(A_0[:, p])[0][0]
+        matches = np.where(A_alpha[:, p])[0].shape
+        if matches == 0:
+            return G
+
+        q_alpha = np.where(A_alpha[:, p])[0][0]
+
+        if q_alpha < p or q_0 < p:
+            raise RuntimeError("error in assignment")
+
+        a1 = assignment_vertex_labels[q_0, p]
+        a2 = assignment_vertex_labels[q_alpha, p]
+
+        G.add_edge(a1, a2, 10000000, self.lambda_v)
         return G
 
     def alpha_expansion(self, alpha, A_0, A_alpha):
