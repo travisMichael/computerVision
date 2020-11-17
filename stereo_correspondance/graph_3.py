@@ -5,7 +5,7 @@ import cv2
 
 class AlphaExpansion:
 
-    def __init__(self, left, right, labels, lambda_v):
+    def __init__(self, left, right, labels, lambda_v, d_thresh):
         self.L = left.astype(np.float)
         self.R = right.astype(np.float)
         self.labels = labels
@@ -16,10 +16,11 @@ class AlphaExpansion:
         self.d_high = labels[labels.shape[0]-1]
         self.assignment_table = self.initialize_assignment_function()
         self.lambda_v = lambda_v
+        self.d_thresh = d_thresh
 
     # used to track how disparity changes after each expansion iteration
     def save_disparity_map(self):
-        f = np.copy(self.f.reshape((self.h, self.w)))
+        f = self.get_f_from_assignment_table()
         f = f * 9
         # l = 255.0 / (len(self.labels) + 1)
         # s = l
@@ -43,11 +44,15 @@ class AlphaExpansion:
     def get_f_from_assignment_table(self):
         f_indices = np.where(self.assignment_table)
         f = np.zeros((self.h, self.w))
+        print("getting f")
+        k = 0
         for i, j in zip(f_indices[0], f_indices[1]):
             index = np.unravel_index(j, (self.h, self.w))
             disparity = i - j
             f[index] = disparity
-            print(i, j)
+            k += 1
+            if k % 100 == 100:
+                print(k)
         return f
 
     def get_labeling_from_partition(self, G, label, A_0, A_alpha):
@@ -96,22 +101,7 @@ class AlphaExpansion:
 
         return G
 
-    def add_occlusion_edges(self, G, alpha):
-
-        assignment_indices = np.where(self.assignment_table)
-        for q, p in zip(assignment_indices[0], assignment_indices[1]):
-            disparity = q - p
-            N_p = np.sum(self.assignment_table[:, p])
-            cost = 0
-            if N_p < 1:
-                cost = self.lambda_v
-            if disparity == alpha:
-                G.add_tedge(p, cost, 0)
-            else:
-                G.add_tedge(p, 0, cost)
-        return G
-
-    def D_p(self, p, q):
+    def D_a(self, p, q):
         # find the best match within the label range, clipped at thresh
         THRESHOLD = self.d_thresh
         p_index = np.unravel_index(p, (self.h, self.w))
@@ -150,13 +140,9 @@ class AlphaExpansion:
         if a_alpha == 1:
             return self.D_occ_a(p, q, A_0+A_alpha)
 
-        return self.D_a(p, q) + self.D_smooth(p, q)
+        return self.D_a(p, q) + self.D_smooth(p, q, A_0+A_alpha)
 
-    def D_smooth(self, p, q):
-        # todo
-        return 0.0
-
-    def D_a(self, p, q):
+    def D_smooth(self, p, q, A):
         # todo
         return 0.0
 
@@ -256,9 +242,10 @@ class AlphaExpansion:
         return non_occluded_pixels * self.lambda_v
 
     def calculate_data_energy(self, a_table):
-        pixel = 0
         sum = 0.0
-        # todo
+        assignment_indices = np.where(a_table)
+        for q, p in zip(assignment_indices[0], assignment_indices[1]):
+            sum += self.D_a(p, q)
 
         return sum
 
