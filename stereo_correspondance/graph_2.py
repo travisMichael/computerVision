@@ -168,54 +168,6 @@ class AlphaExpansion:
                     bottom_pixel = pixel + self.w + 1
                     G = self.add_neighborhood_edges(G, pixel, bottom_pixel, alpha)
 
-                if i < self.h - 2:
-                    bottom_pixel = pixel + 2*self.w
-                    G = self.add_neighborhood_edges(G, pixel, bottom_pixel, alpha)
-
-                if j < self.w - 2:
-                    right_pixel = pixel + 2
-                    G = self.add_neighborhood_edges(G, pixel, right_pixel, alpha)
-
-                if i < self.h - 2 and j < self.w - 2:
-                    bottom_pixel = pixel + 2*self.w + 2
-                    G = self.add_neighborhood_edges(G, pixel, bottom_pixel, alpha)
-
-                # if i < self.h - 3:
-                #     bottom_pixel = pixel + 2*self.w
-                #     G = self.add_neighborhood_edges(G, pixel, bottom_pixel, alpha)
-                #
-                # if j < self.w - 3:
-                #     right_pixel = pixel + 3
-                #     G = self.add_neighborhood_edges(G, pixel, right_pixel, alpha)
-                #
-                # if i < self.h - 3 and j < self.w - 3:
-                #     bottom_pixel = pixel + 3*self.w + 3
-                #     G = self.add_neighborhood_edges(G, pixel, bottom_pixel, alpha)
-                #
-                # if i < self.h - 4:
-                #     bottom_pixel = pixel + 2*self.w
-                #     G = self.add_neighborhood_edges(G, pixel, bottom_pixel, alpha)
-                #
-                # if j < self.w - 4:
-                #     right_pixel = pixel + 3
-                #     G = self.add_neighborhood_edges(G, pixel, right_pixel, alpha)
-                #
-                # if i < self.h - 4 and j < self.w - 4:
-                #     bottom_pixel = pixel + 4*self.w + 4
-                #     G = self.add_neighborhood_edges(G, pixel, bottom_pixel, alpha)
-                #
-                # if i < self.h - 4:
-                #     bottom_pixel = pixel + 2*self.w
-                #     G = self.add_neighborhood_edges(G, pixel, bottom_pixel, alpha)
-                #
-                # if j < self.w - 4:
-                #     right_pixel = pixel + 3
-                #     G = self.add_neighborhood_edges(G, pixel, right_pixel, alpha)
-                #
-                # if i < self.h - 5 and j < self.w - 5:
-                #     bottom_pixel = pixel + 5*self.w + 5
-                #     G = self.add_neighborhood_edges(G, pixel, bottom_pixel, alpha)
-
                 pixel += 1
 
         return G

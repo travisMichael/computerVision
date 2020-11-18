@@ -18,6 +18,15 @@ class AlphaExpansion:
         self.lambda_v = lambda_v
         self.d_thresh = d_thresh
 
+    # returns the assigned pixel to p
+    def get_q(self, p, alpha):
+        p_index = np.unravel_index(p, (self.h, self.w))
+        if p_index[1] + alpha > self.w - 1:
+            return p
+
+        q = p_index[0] * self.w + p_index[1] + alpha
+        return q
+
     # used to track how disparity changes after each expansion iteration
     def save_disparity_map(self):
         f = self.get_f_from_assignment_table()
@@ -31,87 +40,97 @@ class AlphaExpansion:
         cv2.imwrite("output/disparity.png", f)
 
     def initialize_assignment_function(self):
-
-        a_table = np.zeros((self.n+self.d_high, self.n))
-
-        f = np.random.randint(low=self.d_low, high=self.d_high, size=self.n)
-        p_indices = np.indices((1, self.n))[1, :, :]
-        q_indices = np.copy(p_indices) + f
-
-        a_table[q_indices, p_indices] = 1
+        a_table = np.random.randint(low=self.d_low, high=self.d_high, size=self.n)
         return a_table
 
     def get_f_from_assignment_table(self):
-        f_indices = np.where(self.assignment_table)
-        f = np.zeros((self.h, self.w))
-        print("getting f")
-        k = 0
-        for i, j in zip(f_indices[0], f_indices[1]):
-            index = np.unravel_index(j, (self.h, self.w))
-            disparity = i - j
-            f[index] = disparity
-            k += 1
-            if k % 100 == 100:
-                print(k)
+        f = self.assignment_table.reshape((self.h, self.w))
         return f
 
     def get_labeling_from_partition(self, G, label, A_0, A_alpha):
-        A_prime = []
         # todo
-        # f = np.copy(self.f)
-        # nodes = np.arange(0, f.shape[0])
-        # reachable = G.get_grid_segments(nodes)
-        # f[np.where(reachable)] = label
+        A_prime = np.zeros(self.n, dtype=np.int)
+        for p in range(self.n):
+            is_marked = False
+            new_label = 0
+            a1 = A_0[p]
+            a2 = A_alpha[p]
+            # marked as 1 if connected to 't' and 0 if connected to 's'
+            a1_segment = G.get_segment(a1)
+            if a1_segment == 0:
+                is_marked = True
+                new_label = self.assignment_table[p]
+            a2_segment = G.get_segment(a2)
+            if a2_segment == 1:
+                if is_marked is not False:
+                    print("override")
+                new_label = label
+            A_prime[p] = new_label
+
         return A_prime
 
     def calculate_expansion_tables(self, alpha):
-        A_0 = np.copy(self.assignment_table)
-        A_alpha = np.copy(self.assignment_table)
+        A_0 = np.zeros(self.n, dtype=np.int)
+        vertex_label = 0
+        pixel = 0
+        for i in range(self.n):
+            label = self.assignment_table[pixel]
+            if label != 0 and label != alpha:
+                A_0[pixel] = vertex_label
+                vertex_label += 1
+            pixel += 1
 
-        return A_0, A_alpha
+        A_alpha = np.arange(self.n)
+        A_alpha += vertex_label
+        return A_0, A_alpha, vertex_label + self.n
 
-    def construct_graph(self, alpha, A_0, A_alpha):
+    def construct_graph(self, alpha, A_0, A_alpha, n):
 
         # todo: initialize with better params
         G = maxflow.Graph[int](2, 2)
 
-        assignment_edges = np.zeros_like(self.assignment_table)
-        assignment_vertex_labels = np.zeros_like(self.assignment_table)
+        assignment_edges = {}
 
-        assignment_indices = np.where(self.assignment_table)
-        number_of_vertices = assignment_indices[0].shape[0]
-        if number_of_vertices > self.n:
-            raise RuntimeError("Too many assignments")
-        G.add_nodes(assignment_indices[0].shape[0])
-        a = 0
-        for q, p in zip(assignment_indices[0], assignment_indices[1]):
-            assignment_vertex_labels[q, p] = a
-            a += 1
+        G.add_nodes(n)
+        print("Adding A_0 assignments")
+        for p in range(self.n):
+            a = A_0[p]
+            if a == 0 and p != 0:
+                # inactive assignment or assignment in A_alpha
+                continue
+            s_a_cost = self.get_s_a_cost(p, alpha, A_0)
+            a_t_cost = self.get_a_t_cost(p, alpha, A_0, A_alpha)
+            G.add_tedge(a, s_a_cost, a_t_cost)
+            G = self.add_neighborhood_edges(p, G, assignment_edges, A_0, A_alpha)
 
-        for q, p in zip(assignment_indices[0], assignment_indices[1]):
-            a = assignment_vertex_labels[q, p]
-            s_a_cost = self.get_s_a_cost(p, q, alpha, A_0, A_alpha, assignment_vertex_labels)
-            a_t_cost = self.get_a_t_cost(p, q, alpha, A_0, A_alpha, assignment_vertex_labels)
+        print("Adding A_alpha assignments")
+        for p in range(self.n):
+            a = A_0[p]
+            if a == 0 and p != 0:
+                # inactive assignment or assignment in A_alpha
+                continue
+            s_a_cost = self.get_s_a_cost(p, alpha, A_0)
+            a_t_cost = self.get_a_t_cost(p, alpha, A_0, A_alpha)
             G.add_tedge(a, s_a_cost, a_t_cost)
             # an assignment a'=<p',q'> is a neighbor to another assignment a=<p,q> if
             # p is as neighbor of p' or q is a neighbor of q'
-            G = self.add_neighborhood_edges(p, G, assignment_edges, A_0, A_alpha, assignment_vertex_labels)
-            G = self.add_neighborhood_edges(q, G, assignment_edges, A_0, A_alpha, assignment_vertex_labels)
-            G = self.add_expansion_edges(p, G, A_0, A_alpha, assignment_vertex_labels)
+            G = self.add_neighborhood_edges(p, G, assignment_edges, A_0, A_alpha)
+            G = self.add_expansion_edges(p, G, A_0, A_alpha)
 
         return G
 
-    def D_a(self, p, q):
+    def D_a(self, p, d):
         # find the best match within the label range, clipped at thresh
         THRESHOLD = self.d_thresh
         p_index = np.unravel_index(p, (self.h, self.w))
-        q_index = np.unravel_index(q, (self.h, self.w))
+        q_index = (p_index[0], p_index[1] + d)
 
-        if q[1] > self.w - 1:
+        if q_index[1] > self.w - 1:
             return THRESHOLD
 
-        L_I_p = self.L[p_index, :]
-        R_I_p = self.R[q_index, :]
+        # print(q_index)
+        L_I_p = self.L[p_index[0], p_index[1], :]
+        R_I_p = self.R[q_index[0], q_index[1], :]
         diff = L_I_p - R_I_p
         squared = diff ** 2
         value = np.sqrt(np.sum(squared))
@@ -119,30 +138,29 @@ class AlphaExpansion:
             return THRESHOLD
         return value
 
-    def D_occ_p(self, p, A):
-        matches = np.sum(A[:,p])
-        if matches == 1:
+    def D_occ_p(self, p, A_0):
+        if A_0[p] == 0:
             return self.lambda_v
         return 0.0
 
-    def D_occ_a(self, p, q, A):
-        return self.D_occ_p(p, A) + self.D_occ_p(q, A)
+    def D_occ_a(self, p, q, A_0):
+        return self.D_occ_p(p, A_0) + self.D_occ_p(q, A_0)
 
-    def get_s_a_cost(self, p, q, alpha, A_0, A_alpha, assignment_vertex_labels):
-        a_0 = A_0[q, p]
-        if a_0 == 1:
-            return self.D_occ_a(p, q, A_0+A_alpha)
+    def get_s_a_cost(self, p, alpha, A_0):
+        q = self.get_q(p, alpha)
+        if A_0[p] == 1:
+            return self.D_occ_a(p, q, A_0)
 
         return self.D_a(p, q)
 
-    def get_a_t_cost(self, p, q, alpha, A_0, A_alpha, assignment_vertex_labels):
-        a_alpha = A_alpha[q, p]
-        if a_alpha == 1:
-            return self.D_occ_a(p, q, A_0+A_alpha)
+    def get_a_t_cost(self, p, alpha, A_0, A_alpha):
+        q = self.get_q(p, alpha)
+        if A_alpha[p] == 1:
+            return self.D_occ_a(p, q, A_0)
 
-        return self.D_a(p, q) + self.D_smooth(p, q, A_0+A_alpha)
+        return self.D_a(p, q) + self.D_smooth(p, q, A_0, A_alpha)
 
-    def D_smooth(self, p, q, A):
+    def D_smooth(self, p, q, A_0, A_alpha):
         # todo
         return 0.0
 
@@ -150,8 +168,11 @@ class AlphaExpansion:
         # todo
         return 0.0
 
-    def add_neighborhood_edges(self, p, G, assignment_edges, A_0, A_alpha, assignment_vertex_labels):
+    def add_neighborhood_edges(self, p, G, assignment_edges, A_0, A_alpha):
         # todo
+        # an assignment a'=<p',q'> is a neighbor to another assignment a=<p,q> if
+        # p is as neighbor of p' or q is a neighbor of q'
+
         # iterate through neighbors of p
         # if q < self.n + self.d_high - 1 and p < self.n - 1:
         #     # <q_2,p_2> has same disparity of <q,p>
@@ -162,30 +183,23 @@ class AlphaExpansion:
 
         return G
 
-    def add_expansion_edges(self, p, G, A_0, A_alpha, assignment_vertex_labels):
-        matches = np.where(A_0[:, p])[0].shape
-        if matches == 0:
+    def add_expansion_edges(self, p, G, A_0, A_alpha):
+
+        if A_0[p] == 0:
             return G
 
-        q_0 = np.where(A_0[:, p])[0][0]
-        matches = np.where(A_alpha[:, p])[0].shape
-        if matches == 0:
-            return G
+        a1 = A_0[p]
+        a2 = A_alpha[p]
+        try:
+            G.add_edge(a1, a2, 10000000, self.lambda_v)
+        except Exception:
+            print()
 
-        q_alpha = np.where(A_alpha[:, p])[0][0]
-
-        if q_alpha < p or q_0 < p:
-            raise RuntimeError("error in assignment")
-
-        a1 = assignment_vertex_labels[q_0, p]
-        a2 = assignment_vertex_labels[q_alpha, p]
-
-        G.add_edge(a1, a2, 10000000, self.lambda_v)
         return G
 
-    def alpha_expansion(self, alpha, A_0, A_alpha):
+    def alpha_expansion(self, alpha, A_0, A_alpha, n):
 
-        G = self.construct_graph(alpha, A_0, A_alpha)
+        G = self.construct_graph(alpha, A_0, A_alpha, n)
         flow = G.maxflow()
         return flow, G
 
@@ -200,9 +214,10 @@ class AlphaExpansion:
         np.random.shuffle(arr)
         for i in arr:
             label = labels[i]
-            A_0, A_alpha = self.calculate_expansion_tables(label)
-            cut_value, partition = self.alpha_expansion(label)
-            A_prime = self.get_labeling_from_partition(partition, label, A_0, A_alpha)
+            # n = number of assignment nodes for graph
+            A_0, A_alpha, n = self.calculate_expansion_tables(label)
+            cut_value, G = self.alpha_expansion(label, A_0, A_alpha, n)
+            A_prime = self.get_labeling_from_partition(G, label, A_0, A_alpha)
             energy_after_expansion = self.calculate_energy(A_prime)
             print("energy after expansion", energy_after_expansion, label)
             if energy_after_expansion < current_energy:
@@ -233,19 +248,16 @@ class AlphaExpansion:
         return data + smooth + occ
 
     def calculate_occlusion_energy(self, a_table):
-        non_occluded_pixels = np.sum(a_table)
-        occluded_pixels = self.n - non_occluded_pixels
+        occluded_pixels = float(np.where(a_table == 0)[0].shape[0])
 
-        if occluded_pixels < 0:
-            raise RuntimeError("occluded pixel data error")
-
-        return non_occluded_pixels * self.lambda_v
+        return occluded_pixels * self.lambda_v
 
     def calculate_data_energy(self, a_table):
         sum = 0.0
         assignment_indices = np.where(a_table)
-        for q, p in zip(assignment_indices[0], assignment_indices[1]):
-            sum += self.D_a(p, q)
+        for p in range(self.n):
+            d = a_table[p]
+            sum += self.D_a(p, d)
 
         return sum
 
