@@ -27,15 +27,13 @@ class AlphaExpansion:
         q = p_index[0] * self.w + p_index[1] + alpha
         return q
 
+    def get_index(self, i, j):
+        return i * self.w + j
+
     # used to track how disparity changes after each expansion iteration
     def save_disparity_map(self):
         f = self.get_f_from_assignment_table()
         f = f * 9
-        # l = 255.0 / (len(self.labels) + 1)
-        # s = l
-        # for label in self.labels:
-        #     f[f==label] = s
-        #     s += l
 
         cv2.imwrite("output/disparity.png", f)
 
@@ -164,22 +162,67 @@ class AlphaExpansion:
         # todo
         return 0.0
 
-    def V(self):
-        # todo
-        return 0.0
+    def V(self, a_1_label, a_2_label):
+        if a_1_label == a_2_label:
+            return 0.0
+        return self.lambda_v
 
-    def add_neighborhood_edges(self, p, G, assignment_edges, A_0, A_alpha):
-        # todo
-        # an assignment a'=<p',q'> is a neighbor to another assignment a=<p,q> if
-        # p is as neighbor of p' or q is a neighbor of q'
+    def add_neighborhood_edges(self, p, G, assignment_edges, A_0, A_alpha, alpha):
 
-        # iterate through neighbors of p
-        # if q < self.n + self.d_high - 1 and p < self.n - 1:
-        #     # <q_2,p_2> has same disparity of <q,p>
-        #     q_2 = q + 1
-        #     p_2 = p + 1
-            # is_assigned = self.assignment_table[q_2, p_2]
-            # if assignment is different, add penalty
+        q = self.get_q(p, alpha)
+        p_index = np.unravel_index(p, (self.h, self.w))
+        q_index = np.unravel_index(q, (self.h, self.w))
+        a_1 = A_alpha[p]
+        self.add_n_edges(G, p_index, q_index, assignment_edges, A_0, A_alpha, a_1, alpha)
+
+        if A_0[p] == 0:
+            return G
+        label = self.assignment_table[p]
+        q = self.get_q(p, label)
+        q_index = np.unravel_index(q, (self.h, self.w))
+        a_1 = A_0[p]
+        self.add_n_edges(G, p_index, q_index, assignment_edges, A_0, A_alpha, a_1, alpha)
+
+        return G
+
+    def add_n_edges(self, G, p_index, q_index, assignment_edges, A_0, A_alpha, a_1, alpha):
+        # todo
+        a_1_label = q_index[1] - p_index[1]
+        # p_prime is close to p or q_prime is close to q
+        neighbors = np.array([[1,0], [-1,0], [0,1], [0,-1]])
+        for i in range(4):
+            p_prime_index = p_index + neighbors[0]
+            if p_prime_index[1] > self.w - 1:
+                continue
+            p_prime = self.get_index(p_prime_index[0], p_prime_index[1])
+            a_2 = A_alpha[p_prime]
+            # check if labels match
+            v = self.V(a_1_label, alpha)
+            G.add_edge(a_1, a_2, v, v)
+
+            a_2 = A_0[p_prime]
+            if a_2 == 0:
+                continue
+            a_2_label = self.assignment_table[p_prime]
+            v = self.V(a_1_label, a_2_label)
+            G.add_edge(a_1, a_2, v, v)
+
+        for i in range(4):
+            q_prime_index = q_index + neighbors[0]
+            if q_prime_index[1] > self.w - 1:
+                continue
+            q_prime = self.get_index(q_prime_index[0], q_prime_index[1])
+            a_2 = A_alpha[q_prime]
+            # check if labels match
+            v = self.V(a_1_label, alpha)
+            G.add_edge(a_1, a_2, v, v)
+
+            a_2 = A_0[q_prime]
+            if a_2 == 0:
+                continue
+            a_2_label = self.assignment_table[q_prime]
+            v = self.V(a_1_label, a_2_label)
+            G.add_edge(a_1, a_2, v, v)
 
         return G
 
