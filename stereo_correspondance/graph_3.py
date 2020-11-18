@@ -99,7 +99,7 @@ class AlphaExpansion:
             s_a_cost = self.get_s_a_cost(p, alpha, A_0)
             a_t_cost = self.get_a_t_cost(p, alpha, A_0, A_alpha)
             G.add_tedge(a, s_a_cost, a_t_cost)
-            G = self.add_neighborhood_edges(p, G, assignment_edges, A_0, A_alpha)
+            G = self.add_neighborhood_edges(p, G, assignment_edges, A_0, A_alpha, alpha)
 
         print("Adding A_alpha assignments")
         for p in range(self.n):
@@ -112,7 +112,7 @@ class AlphaExpansion:
             G.add_tedge(a, s_a_cost, a_t_cost)
             # an assignment a'=<p',q'> is a neighbor to another assignment a=<p,q> if
             # p is as neighbor of p' or q is a neighbor of q'
-            G = self.add_neighborhood_edges(p, G, assignment_edges, A_0, A_alpha)
+            # G = self.add_neighborhood_edges(p, G, assignment_edges, A_0, A_alpha)
             G = self.add_expansion_edges(p, G, A_0, A_alpha)
 
         return G
@@ -156,11 +156,7 @@ class AlphaExpansion:
         if A_alpha[p] == 1:
             return self.D_occ_a(p, q, A_0)
 
-        return self.D_a(p, q) + self.D_smooth(p, q, A_0, A_alpha)
-
-    def D_smooth(self, p, q, A_0, A_alpha):
-        # todo
-        return 0.0
+        return self.D_a(p, q) + self.D_smooth(p, alpha, self.assignment_table)
 
     def V(self, a_1_label, a_2_label):
         if a_1_label == a_2_label:
@@ -192,7 +188,7 @@ class AlphaExpansion:
         neighbors = np.array([[1,0], [-1,0], [0,1], [0,-1]])
         for i in range(4):
             p_prime_index = p_index + neighbors[0]
-            if p_prime_index[1] > self.w - 1:
+            if p_prime_index[1] > self.w - 1 or p_prime_index[0] > self.h - 1:
                 continue
             p_prime = self.get_index(p_prime_index[0], p_prime_index[1])
             a_2 = A_alpha[p_prime]
@@ -209,7 +205,7 @@ class AlphaExpansion:
 
         for i in range(4):
             q_prime_index = q_index + neighbors[0]
-            if q_prime_index[1] > self.w - 1:
+            if q_prime_index[1] > self.w - 1 or q_prime_index[0] > self.h - 1:
                 continue
             q_prime = self.get_index(q_prime_index[0], q_prime_index[1])
             a_2 = A_alpha[q_prime]
@@ -233,10 +229,7 @@ class AlphaExpansion:
 
         a1 = A_0[p]
         a2 = A_alpha[p]
-        try:
-            G.add_edge(a1, a2, 10000000, self.lambda_v)
-        except Exception:
-            print()
+        G.add_edge(a1, a2, 10000000, self.lambda_v)
 
         return G
 
@@ -283,6 +276,38 @@ class AlphaExpansion:
     """
     ------------------------------ energy functions
     """
+    # only for A_0
+    def D_smooth(self, p, alpha, A_table):
+        # todo
+        a_1_label = A_table[p]
+        p_index = np.unravel_index(p, (self.h, self.w))
+        q = self.get_q(p, a_1_label)
+        q_index = np.unravel_index(q, (self.h, self.w))
+        value = 0.0
+
+        neighbors = np.array([[1,0], [-1,0], [0,1], [0,-1]])
+        for i in range(4):
+            p_prime_index = p_index + neighbors[0]
+            if p_prime_index[1] > self.w - 1 or p_prime_index[0] > self.h - 1:
+                continue
+            p_prime = self.get_index(p_prime_index[0], p_prime_index[1])
+            a_2_label = A_table[p_prime]
+            if a_2_label == alpha:
+                continue
+            value = self.V(a_1_label, a_2_label)
+
+        for i in range(4):
+            q_prime_index = q_index + neighbors[0]
+            if q_prime_index[1] > self.w - 1 or q_prime_index[0] > self.h - 1:
+                continue
+            q_prime = self.get_index(q_prime_index[0], q_prime_index[1])
+            a_2_label = A_table[q_prime]
+            if a_2_label == alpha:
+                continue
+            value = self.V(a_1_label, a_2_label)
+
+        return value
+
     def calculate_energy(self, a_table):
         smooth = self.calculate_smoothness_energy(a_table)
         data = self.calculate_data_energy(a_table)
@@ -297,17 +322,16 @@ class AlphaExpansion:
 
     def calculate_data_energy(self, a_table):
         sum = 0.0
-        assignment_indices = np.where(a_table)
         for p in range(self.n):
             d = a_table[p]
             sum += self.D_a(p, d)
 
         return sum
 
-    def calculate_smoothness_energy(self, f):
-        pixel = 0
+    def calculate_smoothness_energy(self, a_table):
         sum = 0.0
-        # todo
+        for p in range(self.n):
+            sum += self.D_smooth(p, 10000, a_table)
 
         return sum
 
