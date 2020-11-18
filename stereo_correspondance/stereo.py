@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import graph_2 as graph
+import graph_3 as g3
 
 
 # def pairwise_stereo(left, right, labels, method):
@@ -46,12 +47,20 @@ def pairwise_stereo_ssd(left, right):
 def pairwise_stereo_graph_cut(left, right, labels, increment, k, k_not, intensity_thresh, d_thresh):
 
     # use alpha beta swap to get f, where f: pixel --> label (f assigns a label to each pixel).
-    stereo_solver = graph.AlphaExpansion(left, right, labels,
+    stereo_algorithm = graph.AlphaExpansion(left, right, labels,
                                          increment=increment, k=k, k_not=k_not,
                                          v_thresh=intensity_thresh, d_thresh=d_thresh)
 
-    f = stereo_solver.calculate_disparity_map()
+    f = stereo_algorithm.calculate_disparity_map()
     # transform f into disparity map
+
+    return None
+
+
+def pairwise_stereo_graph_cut_3(left, right, labels, lambda_v, d_thresh):
+    stereo_algorithm = g3.AlphaExpansion(left, right, labels, lambda_v=lambda_v, d_thresh=d_thresh)
+
+    f = stereo_algorithm.calculate_disparity_map()
 
     return None
 
