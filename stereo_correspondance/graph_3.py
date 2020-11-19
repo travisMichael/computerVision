@@ -169,7 +169,7 @@ class AlphaExpansion:
         p_index = np.unravel_index(p, (self.h, self.w))
         q_index = np.unravel_index(q, (self.h, self.w))
         a_1 = A_alpha[p]
-        self.add_n_edges(G, p_index, q_index, assignment_edges, A_0, A_alpha, a_1, alpha)
+        self.add_n_edges(G, p_index, q_index, assignment_edges, A_alpha, a_1, alpha)
 
         if A_0[p] == 0:
             return G
@@ -177,11 +177,12 @@ class AlphaExpansion:
         q = self.get_q(p, label)
         q_index = np.unravel_index(q, (self.h, self.w))
         a_1 = A_0[p]
-        self.add_n_edges(G, p_index, q_index, assignment_edges, A_0, A_alpha, a_1, alpha)
+        self.add_n_edges(G, p_index, q_index, assignment_edges, A_0, a_1, alpha)
 
         return G
 
-    def add_n_edges(self, G, p_index, q_index, assignment_edges, A_0, A_alpha, a_1, alpha):
+    # A = A_0 or A_alpha
+    def add_n_edges(self, G, p_index, q_index, assignment_edges, A, a_1, alpha):
         # todo
         a_1_label = q_index[1] - p_index[1]
         # p_prime is close to p or q_prime is close to q
@@ -191,16 +192,11 @@ class AlphaExpansion:
             if p_prime_index[1] > self.w - 1 or p_prime_index[0] > self.h - 1:
                 continue
             p_prime = self.get_index(p_prime_index[0], p_prime_index[1])
-            a_2 = A_alpha[p_prime]
-            # check if labels match
-            v = self.V(a_1_label, alpha)
-            G.add_edge(a_1, a_2, v, v)
-
-            a_2 = A_0[p_prime]
+            a_2 = A[p_prime]
             if a_2 == 0:
                 continue
-            a_2_label = self.assignment_table[p_prime]
-            v = self.V(a_1_label, a_2_label)
+            # check if labels match
+            v = self.V(a_1_label, alpha)
             G.add_edge(a_1, a_2, v, v)
 
         for i in range(4):
@@ -208,16 +204,11 @@ class AlphaExpansion:
             if q_prime_index[1] > self.w - 1 or q_prime_index[0] > self.h - 1:
                 continue
             q_prime = self.get_index(q_prime_index[0], q_prime_index[1])
-            a_2 = A_alpha[q_prime]
-            # check if labels match
-            v = self.V(a_1_label, alpha)
-            G.add_edge(a_1, a_2, v, v)
-
-            a_2 = A_0[q_prime]
+            a_2 = A[q_prime]
             if a_2 == 0:
                 continue
-            a_2_label = self.assignment_table[q_prime]
-            v = self.V(a_1_label, a_2_label)
+            # check if labels match
+            v = self.V(a_1_label, alpha)
             G.add_edge(a_1, a_2, v, v)
 
         return G
