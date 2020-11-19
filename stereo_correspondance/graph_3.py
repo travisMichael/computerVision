@@ -92,28 +92,39 @@ class AlphaExpansion:
         G.add_nodes(n)
         print("Adding A_0 assignments")
         for p in range(self.n):
-            a = A_0[p]
-            if a == 0 and p != 0:
-                # inactive assignment or assignment in A_alpha
-                continue
-            s_a_cost = self.get_s_a_cost(p, alpha, A_0)
-            a_t_cost = self.get_a_t_cost(p, alpha, A_0, A_alpha)
-            G.add_tedge(a, s_a_cost, a_t_cost)
-            G = self.add_neighborhood_edges(p, G, assignment_edges, A_0, A_alpha, alpha)
+            a_0 = A_0[p]
+            label = self.assignment_table[p]
+            if a_0 != 0:
+                q_0 = self.get_q(p, label)
+                d_a_0_occ = self.D_occ_a(p, q_0, A_0)
+                d_a_0 = self.D_a(p, q_0) + self.D_smooth(p, alpha, self.assignment_table)
+                # s_a_cost = self.get_s_a_cost(p, alpha, A_0)
+                # a_t_cost = self.get_a_t_cost(p, alpha, A_0, A_alpha)
+                G.add_tedge(a_0, d_a_0_occ, d_a_0)
+                G = self.add_neighborhood_edges(p, G, assignment_edges, A_0, A_alpha, alpha)
 
-        print("Adding A_alpha assignments")
-        for p in range(self.n):
-            a = A_0[p]
-            if a == 0 and p != 0:
-                # inactive assignment or assignment in A_alpha
-                continue
-            s_a_cost = self.get_s_a_cost(p, alpha, A_0)
-            a_t_cost = self.get_a_t_cost(p, alpha, A_0, A_alpha)
-            G.add_tedge(a, s_a_cost, a_t_cost)
-            # an assignment a'=<p',q'> is a neighbor to another assignment a=<p,q> if
-            # p is as neighbor of p' or q is a neighbor of q'
-            # G = self.add_neighborhood_edges(p, G, assignment_edges, A_0, A_alpha)
-            G = self.add_expansion_edges(p, G, A_0, A_alpha)
+            a_alpha = A_alpha[p]
+            q_alpha = self.get_q(p, alpha)
+            d_a_alpha_occ = self.D_occ_a(p, q_alpha, A_0)
+
+            d_a_0 = self.D_a(p, q_alpha)
+            # s_a_cost = self.get_s_a_cost(p, alpha, A_0)
+            # a_t_cost = self.get_a_t_cost(p, alpha, A_0, A_alpha)
+            G.add_tedge(a_alpha, d_a_0, d_a_alpha_occ)
+            if a_0 != 0:
+                G.add_edge(a_0, a_alpha, 10000000, self.lambda_v)
+                return G
+
+        # print("Adding A_alpha assignments")
+        # for p in range(self.n):
+        #     a = A_0[p]
+        #     if a == 0 and p != 0:
+        #         # inactive assignment or assignment in A_alpha
+        #         continue
+        #     s_a_cost = self.get_s_a_cost(p, alpha, A_0)
+        #     a_t_cost = self.get_a_t_cost(p, alpha, A_0, A_alpha)
+        #     G.add_tedge(a, s_a_cost, a_t_cost)
+        #     G = self.add_expansion_edges(p, G, A_0, A_alpha)
 
         return G
 
@@ -136,27 +147,27 @@ class AlphaExpansion:
             return THRESHOLD
         return value
 
-    def D_occ_p(self, p, A_0):
-        if A_0[p] == 0:
-            return self.lambda_v
-        return 0.0
+    # def D_occ_p(self, p, A_0):
+    #     if A_0[p] == 0:
+    #         return self.lambda_v
+    #     return 0.0
 
     def D_occ_a(self, p, q, A_0):
         return self.D_occ_p(p, A_0) + self.D_occ_p(q, A_0)
 
-    def get_s_a_cost(self, p, alpha, A_0):
-        q = self.get_q(p, alpha)
-        if A_0[p] == 1:
-            return self.D_occ_a(p, q, A_0)
+    # def get_s_a_cost(self, p, d, is_in_A_0):
+    #     q = self.get_q(p, d)
+    #     if is_in_A_0:
+    #         return self.D_occ_a(p, q, A_0)
+    #
+    #     return self.D_a(p, q)
 
-        return self.D_a(p, q)
-
-    def get_a_t_cost(self, p, alpha, A_0, A_alpha):
-        q = self.get_q(p, alpha)
-        if A_alpha[p] == 1:
-            return self.D_occ_a(p, q, A_0)
-
-        return self.D_a(p, q) + self.D_smooth(p, alpha, self.assignment_table)
+    # def get_a_t_cost(self, p, alpha, A_0, A_alpha):
+    #     q = self.get_q(p, alpha)
+    #     if A_alpha[p] == 1:
+    #         return self.D_occ_a(p, q, A_0)
+    #
+    #     return self.D_a(p, q) + self.D_smooth(p, alpha, self.assignment_table)
 
     def V(self, a_1_label, a_2_label):
         if a_1_label == a_2_label:
@@ -219,17 +230,6 @@ class AlphaExpansion:
             a_2_label = self.assignment_table[q_prime]
             v = self.V(a_1_label, a_2_label)
             G.add_edge(a_1, a_2, v, v)
-
-        return G
-
-    def add_expansion_edges(self, p, G, A_0, A_alpha):
-
-        if A_0[p] == 0:
-            return G
-
-        a1 = A_0[p]
-        a2 = A_alpha[p]
-        G.add_edge(a1, a2, 10000000, self.lambda_v)
 
         return G
 
