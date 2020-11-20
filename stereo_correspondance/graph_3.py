@@ -2,7 +2,7 @@ import numpy as np
 import maxflow
 import cv2
 
-K = 2.5
+K = 5
 
 class AlphaExpansion:
 
@@ -128,10 +128,10 @@ class AlphaExpansion:
             return THRESHOLD
 
         # print(q_index)
-        # L_I_p = self.L[p_index[0], p_index[1], :]
-        # R_I_p = self.R[q_index[0], q_index[1], :]
-        L_I_p = self.L[p_index[0], p_index[1]]
-        R_I_p = self.R[q_index[0], q_index[1]]
+        L_I_p = self.L[p_index[0], p_index[1], :]
+        R_I_p = self.R[q_index[0], q_index[1], :]
+        # L_I_p = self.L[p_index[0], p_index[1]]
+        # R_I_p = self.R[q_index[0], q_index[1]]
         diff = L_I_p - R_I_p
         squared = diff ** 2
         value = np.sqrt(np.sum(squared))
@@ -159,7 +159,7 @@ class AlphaExpansion:
         I_p_prime = self.L[p_prime_index[0], p_prime_index[1]]
         # calculate how close the pixels are in intensity
         sum_abs_values = np.sum(np.abs(I_p - I_p_prime))
-        if sum_abs_values < 8:
+        if sum_abs_values < 30:
             return 3 * self.lambda_v
 
         return self.lambda_v
@@ -196,23 +196,23 @@ class AlphaExpansion:
             if not self.is_edge_present(a_1, a_2):
                 G.add_edge(a_1, a_2, v, v)
 
-        q = self.get_index(p_index[0], p_index[1])
-        for i in range(self.neighbors.shape[0]):
-            q_prime_index = q_index + self.neighbors[i]
-            if np.min(q_prime_index) < 0:
-                continue
-            if q_prime_index[1] > self.w - 1 or q_prime_index[0] > self.h - 1:
-                continue
-            q_prime = self.get_index(q_prime_index[0], q_prime_index[1])
-            q_prime_label = self.assignment_table[q_prime]
-            a_2 = A[q_prime]
-            if q_prime_label == alpha:
-                continue
-            # check if labels match
-            v = self.V(q_prime_label, alpha, q, q_prime)
-            s += v
-            if not self.is_edge_present(a_1, a_2):
-                G.add_edge(a_1, a_2, v, v)
+        # q = self.get_index(p_index[0], p_index[1])
+        # for i in range(self.neighbors.shape[0]):
+        #     q_prime_index = q_index + self.neighbors[i]
+        #     if np.min(q_prime_index) < 0:
+        #         continue
+        #     if q_prime_index[1] > self.w - 1 or q_prime_index[0] > self.h - 1:
+        #         continue
+        #     q_prime = self.get_index(q_prime_index[0], q_prime_index[1])
+        #     q_prime_label = self.assignment_table[q_prime]
+        #     a_2 = A[q_prime]
+        #     if q_prime_label == alpha:
+        #         continue
+        #     # check if labels match
+        #     v = self.V(q_prime_label, alpha, q, q_prime)
+        #     s += v
+        #     if not self.is_edge_present(a_1, a_2):
+        #         G.add_edge(a_1, a_2, v, v)
 
         return G
 
@@ -309,18 +309,18 @@ class AlphaExpansion:
             if a_2_label == alpha:
                 continue
             value += self.V(a_1_label, a_2_label, p, p_prime)
-
-        for i in range(self.neighbors.shape[0]):
-            q_prime_index = q_index + self.neighbors[i]
-            if np.min(q_prime_index) < 0:
-                continue
-            if q_prime_index[1] > self.w - 1 or q_prime_index[0] > self.h - 1:
-                continue
-            q_prime = self.get_index(q_prime_index[0], q_prime_index[1])
-            a_2_label = A_table[q_prime]
-            if a_2_label == alpha:
-                continue
-            value += self.V(a_1_label, a_2_label, q, q_prime)
+        #
+        # for i in range(self.neighbors.shape[0]):
+        #     q_prime_index = q_index + self.neighbors[i]
+        #     if np.min(q_prime_index) < 0:
+        #         continue
+        #     if q_prime_index[1] > self.w - 1 or q_prime_index[0] > self.h - 1:
+        #         continue
+        #     q_prime = self.get_index(q_prime_index[0], q_prime_index[1])
+        #     a_2_label = A_table[q_prime]
+        #     if a_2_label == alpha:
+        #         continue
+        #     value += self.V(a_1_label, a_2_label, q, q_prime)
 
         return value
 
