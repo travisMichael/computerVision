@@ -2,6 +2,7 @@ import numpy as np
 import maxflow
 import cv2
 
+K = 2.5
 
 class AlphaExpansion:
 
@@ -17,6 +18,10 @@ class AlphaExpansion:
         self.assignment_table = self.initialize_assignment_function()
         self.lambda_v = lambda_v
         self.d_thresh = d_thresh
+        # variable to make duplicate edges are not added for neighboring assignments <a_1, a_2>
+        self.assignment_edges = {}
+        self.neighbors = np.array([[1,0], [-1,0], [0,1], [0,-1]])
+        # self.neighbors = np.array([[1,0], [-1,0], [0,1], [0,-1], [1,1], [-1,1], [1, -1], [-1,-1]])
 
     # returns the assigned pixel to p
     def get_q(self, p, alpha):
@@ -88,14 +93,14 @@ class AlphaExpansion:
         # todo: initialize with better params
         G = maxflow.Graph[int](self.n, self.n)
 
-        assignment_edges = {}
+        self.assignment_edges = {}
 
         G.add_nodes(n)
         print("Adding A_0 assignments")
         for p in range(self.n):
             a_0 = A_0[p]
             label = self.assignment_table[p]
-            G = self.add_neighborhood_edges(p, G, assignment_edges, A_0, A_alpha, alpha)
+            G = self.add_neighborhood_edges(p, G, A_alpha, alpha)
             a_alpha = A_alpha[p]
             q_alpha = self.get_q(p, alpha)
             d_a_alpha_occ = self.D_occ_a(p, q_alpha, A_0)
@@ -105,16 +110,17 @@ class AlphaExpansion:
             if a_0 != 0 or p != 0:
                 q_0 = self.get_q(p, label)
                 d_a_0_occ = self.D_occ_a(p, q_0, A_0)
-                d_a_0 = self.D_a(p, label) + self.D_smooth(p, alpha, self.assignment_table)
+                d_smooth = self.D_smooth(p, self.assignment_table, alpha)
+                d_a_0 = self.D_a(p, label) + d_smooth
                 G.add_tedge(a_0, d_a_0_occ, d_a_0)
-                G.add_edge(a_0, a_alpha, 10000000, 10 * self.lambda_v)
+                G.add_edge(a_0, a_alpha, 10000000, K * self.lambda_v)
                 # print(p, d_a_alpha, d_a_alpha_occ, d_a_0_occ, d_a_0)
 
         return G
 
     def D_a(self, p, d):
         # find the best match within the label range, clipped at thresh
-        THRESHOLD = 500 # self.d_thresh
+        THRESHOLD = 800 # self.d_thresh
         p_index = np.unravel_index(p, (self.h, self.w))
         q_index = (p_index[0], p_index[1] + d)
 
@@ -124,6 +130,8 @@ class AlphaExpansion:
         # print(q_index)
         L_I_p = self.L[p_index[0], p_index[1], :]
         R_I_p = self.R[q_index[0], q_index[1], :]
+        # L_I_p = self.L[p_index[0], p_index[1]]
+        # R_I_p = self.R[q_index[0], q_index[1]]
         diff = L_I_p - R_I_p
         squared = diff ** 2
         value = np.sqrt(np.sum(squared))
@@ -133,51 +141,45 @@ class AlphaExpansion:
 
     def D_occ_p(self, p, A_0):
         # return self.lambda_v
-        if A_0[p] == 0:
-            return self.lambda_v
-        return 0.0
+        # if A_0[p] == 0:
+        #     return 0.0
+        return K * self.lambda_v
 
     def D_occ_a(self, p, q, A_0):
-        return 10 * self.lambda_v # self.D_occ_p(p, A_0) + self.D_occ_p(q, A_0)
+        return self.D_occ_p(p, A_0) + self.D_occ_p(q, A_0)
 
-    # def get_s_a_cost(self, p, d, is_in_A_0):
-    #     q = self.get_q(p, d)
-    #     if is_in_A_0:
-    #         return self.D_occ_a(p, q, A_0)
-    #
-    #     return self.D_a(p, q)
-
-    # def get_a_t_cost(self, p, alpha, A_0, A_alpha):
-    #     q = self.get_q(p, alpha)
-    #     if A_alpha[p] == 1:
-    #         return self.D_occ_a(p, q, A_0)
-    #
-    #     return self.D_a(p, q) + self.D_smooth(p, alpha, self.assignment_table)
-
-    def V(self, a_1_label, a_2_label):
+    def V(self, a_1_label, a_2_label, p, p_prime):
         if a_1_label == a_2_label:
             return 0.0
-        return 5 * self.lambda_v
+        p_index = np.unravel_index(p, (self.h, self.w))
+        p_prime_index = np.unravel_index(p_prime, (self.h, self.w))
+        I_p = self.L[p_index[0], p_index[1], :]
+        I_p_prime = self.L[p_prime_index[0], p_prime_index[1], :]
+        # I_p = self.L[p_index[0], p_index[1]]
+        # I_p_prime = self.L[p_prime_index[0], p_prime_index[1]]
+        # calculate how close the pixels are in intensity
+        sum_abs_values = np.sum(np.abs(I_p - I_p_prime))
+        if sum_abs_values < 8:
+            return self.lambda_v
 
-    def add_neighborhood_edges(self, p, G, assignment_edges, A_0, A_alpha, alpha):
+        return 3 * self.lambda_v
+
+    def add_neighborhood_edges(self, p, G, A_alpha, alpha):
 
         q = self.get_q(p, alpha)
         p_index = np.unravel_index(p, (self.h, self.w))
         q_index = np.unravel_index(q, (self.h, self.w))
         a_1 = A_alpha[p]
-        self.add_n_edges(G, p_index, q_index, assignment_edges, A_alpha, a_1, alpha)
+        self.add_n_edges(G, p_index, q_index, A_alpha, a_1, alpha)
 
         return G
 
-    # A = A_0 or A_alpha
-    def add_n_edges(self, G, p_index, q_index, assignment_edges, A, a_1, alpha):
-        # todo
+    def add_n_edges(self, G, p_index, q_index, A, a_1, alpha):
+        p = self.get_index(p_index[0], p_index[1])
         # p_prime is close to p or q_prime is close to q
-        neighbors = np.array([[1,0], [-1,0], [0,1], [0,-1]])
-        neighbors = np.array([[1,0], [0,1]])
         s = 0.0
-        for i in range(neighbors.shape[0]):
-            p_prime_index = p_index + neighbors[i]
+        for i in range(self.neighbors.shape[0]):
+            p_prime_index = p_index + self.neighbors[i]
             if np.min(p_prime_index) < 0:
                 continue
             if p_prime_index[1] > self.w - 1 or p_prime_index[0] > self.h - 1:
@@ -188,28 +190,61 @@ class AlphaExpansion:
             if p_prime_label == alpha:
                 continue
             # check if labels match
-            v = self.V(p_prime_label, alpha)
+            v = self.V(p_prime_label, alpha, p, p_prime)
             s += v
             a_2 = A[p_prime]
-            G.add_edge(a_1, a_2, v, v)
+            if not self.is_edge_present(a_1, a_2):
+                G.add_edge(a_1, a_2, v, v)
 
-        # for i in range(neighbors.shape[0]):
-        #     q_prime_index = q_index + neighbors[i]
-        #     if np.min(q_prime_index) < 0:
-        #         continue
-        #     if q_prime_index[1] > self.w - 1 or q_prime_index[0] > self.h - 1:
-        #         continue
-        #     q_prime = self.get_index(q_prime_index[0], q_prime_index[1])
-        #     q_prime_label = self.assignment_table[q_prime]
-        #     a_2 = A[q_prime]
-        #     if q_prime_label == alpha:
-        #         continue
-        #     # check if labels match
-        #     v = self.V(q_prime_label, alpha)
-        #     s += v
-        #     G.add_edge(a_1, a_2, v, v)
+        q = self.get_index(p_index[0], p_index[1])
+        for i in range(self.neighbors.shape[0]):
+            q_prime_index = q_index + self.neighbors[i]
+            if np.min(q_prime_index) < 0:
+                continue
+            if q_prime_index[1] > self.w - 1 or q_prime_index[0] > self.h - 1:
+                continue
+            q_prime = self.get_index(q_prime_index[0], q_prime_index[1])
+            q_prime_label = self.assignment_table[q_prime]
+            a_2 = A[q_prime]
+            if q_prime_label == alpha:
+                continue
+            # check if labels match
+            v = self.V(q_prime_label, alpha, q, q_prime)
+            s += v
+            if not self.is_edge_present(a_1, a_2):
+                G.add_edge(a_1, a_2, v, v)
 
         return G
+
+    def is_edge_present(self, a_1, a_2):
+        if a_1 > a_2:
+            v = self.assignment_edges.get(a_1)
+            if v is None:
+                new_v = {a_2}
+                self.assignment_edges[a_1] = new_v
+                return True
+            else:
+                if a_2 not in v:
+                    # add a_2 to v
+                    v.add(a_2)
+                    self.assignment_edges[a_1] = v
+                    return True
+                else:
+                    return False
+        else:
+            v = self.assignment_edges.get(a_2)
+            if v is None:
+                new_v = {a_1}
+                self.assignment_edges[a_2] = new_v
+                return True
+            else:
+                if a_1 not in v:
+                    # add a_2 to v
+                    v.add(a_1)
+                    self.assignment_edges[a_2] = v
+                    return True
+                else:
+                    return False
 
     def alpha_expansion(self, alpha, A_0, A_alpha, n):
 
@@ -255,7 +290,7 @@ class AlphaExpansion:
     ------------------------------ energy functions
     """
     # only for A_0
-    def D_smooth(self, p, alpha, A_table):
+    def D_smooth(self, p, A_table, alpha):
         # todo
         a_1_label = A_table[p]
         p_index = np.unravel_index(p, (self.h, self.w))
@@ -263,26 +298,29 @@ class AlphaExpansion:
         q_index = np.unravel_index(q, (self.h, self.w))
         value = 0.0
 
-        neighbors = np.array([[1,0], [-1,0], [0,1], [0,-1]])
-        for i in range(4):
-            p_prime_index = p_index + neighbors[0]
+        for i in range(self.neighbors.shape[0]):
+            p_prime_index = p_index + self.neighbors[i]
+            if np.min(p_prime_index) < 0:
+                continue
             if p_prime_index[1] > self.w - 1 or p_prime_index[0] > self.h - 1:
                 continue
             p_prime = self.get_index(p_prime_index[0], p_prime_index[1])
             a_2_label = A_table[p_prime]
             if a_2_label == alpha:
                 continue
-            value = self.V(a_1_label, a_2_label)
+            value += self.V(a_1_label, a_2_label, p, p_prime)
 
-        for i in range(4):
-            q_prime_index = q_index + neighbors[0]
+        for i in range(self.neighbors.shape[0]):
+            q_prime_index = q_index + self.neighbors[i]
+            if np.min(q_prime_index) < 0:
+                continue
             if q_prime_index[1] > self.w - 1 or q_prime_index[0] > self.h - 1:
                 continue
             q_prime = self.get_index(q_prime_index[0], q_prime_index[1])
             a_2_label = A_table[q_prime]
             if a_2_label == alpha:
                 continue
-            value = self.V(a_1_label, a_2_label)
+            value += self.V(a_1_label, a_2_label, q, q_prime)
 
         return value
 
@@ -309,7 +347,8 @@ class AlphaExpansion:
     def calculate_smoothness_energy(self, a_table):
         sum = 0.0
         for p in range(self.n):
-            sum += self.D_smooth(p, 10000, a_table)
+            alpha = -1
+            sum += self.D_smooth(p, a_table, alpha)
 
         return sum
 
