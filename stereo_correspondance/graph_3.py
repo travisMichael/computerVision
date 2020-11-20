@@ -113,7 +113,7 @@ class AlphaExpansion:
                 d_smooth = self.D_smooth(p, self.assignment_table, alpha)
                 d_a_0 = self.D_a(p, label) + d_smooth
                 G.add_tedge(a_0, d_a_0_occ, d_a_0)
-                G.add_edge(a_0, a_alpha, 10000000, K * self.lambda_v)
+                G.add_edge(a_0, a_alpha, 10000000, 2 * K * self.lambda_v)
                 # print(p, d_a_alpha, d_a_alpha_occ, d_a_0_occ, d_a_0)
 
         return G
@@ -128,10 +128,10 @@ class AlphaExpansion:
             return THRESHOLD
 
         # print(q_index)
-        L_I_p = self.L[p_index[0], p_index[1], :]
-        R_I_p = self.R[q_index[0], q_index[1], :]
-        # L_I_p = self.L[p_index[0], p_index[1]]
-        # R_I_p = self.R[q_index[0], q_index[1]]
+        # L_I_p = self.L[p_index[0], p_index[1], :]
+        # R_I_p = self.R[q_index[0], q_index[1], :]
+        L_I_p = self.L[p_index[0], p_index[1]]
+        R_I_p = self.R[q_index[0], q_index[1]]
         diff = L_I_p - R_I_p
         squared = diff ** 2
         value = np.sqrt(np.sum(squared))
@@ -153,16 +153,16 @@ class AlphaExpansion:
             return 0.0
         p_index = np.unravel_index(p, (self.h, self.w))
         p_prime_index = np.unravel_index(p_prime, (self.h, self.w))
-        I_p = self.L[p_index[0], p_index[1], :]
-        I_p_prime = self.L[p_prime_index[0], p_prime_index[1], :]
-        # I_p = self.L[p_index[0], p_index[1]]
-        # I_p_prime = self.L[p_prime_index[0], p_prime_index[1]]
+        # I_p = self.L[p_index[0], p_index[1], :]
+        # I_p_prime = self.L[p_prime_index[0], p_prime_index[1], :]
+        I_p = self.L[p_index[0], p_index[1]]
+        I_p_prime = self.L[p_prime_index[0], p_prime_index[1]]
         # calculate how close the pixels are in intensity
         sum_abs_values = np.sum(np.abs(I_p - I_p_prime))
         if sum_abs_values < 8:
-            return self.lambda_v
+            return 3 * self.lambda_v
 
-        return 3 * self.lambda_v
+        return self.lambda_v
 
     def add_neighborhood_edges(self, p, G, A_alpha, alpha):
 
