@@ -2,7 +2,7 @@ import numpy as np
 import maxflow
 import cv2
 
-K = 2.5
+K = 4
 
 class AlphaExpansion:
 
@@ -21,6 +21,7 @@ class AlphaExpansion:
         # variable to make duplicate edges are not added for neighboring assignments <a_1, a_2>
         self.assignment_edges = {}
         self.neighbors = np.array([[1,0], [-1,0], [0,1], [0,-1]])
+        self.iteration = 1
         # self.neighbors = np.array([[1,0], [-1,0], [0,1], [0,-1], [1,1], [-1,1], [1, -1], [-1,-1]])
 
     # returns the assigned pixel to p
@@ -40,7 +41,7 @@ class AlphaExpansion:
         f = self.get_f_from_assignment_table()
         f = f * 9
 
-        cv2.imwrite("output/disparity.png", f)
+        cv2.imwrite("output/disparity/d_" + str(self.iteration) + ".png", f)
 
     def initialize_assignment_function(self):
         a_table = np.random.randint(low=self.d_low, high=self.d_high, size=self.n)
@@ -137,7 +138,7 @@ class AlphaExpansion:
 
     def D_a(self, p, d):
         # find the best match within the label range, clipped at thresh
-        THRESHOLD = 800 # self.d_thresh
+        THRESHOLD = 100 # self.d_thresh
         p_index = np.unravel_index(p, (self.h, self.w))
         q_index = (p_index[0], p_index[1] + d)
 
@@ -176,7 +177,7 @@ class AlphaExpansion:
         I_p_prime = self.L[p_prime_index[0], p_prime_index[1]]
         # calculate how close the pixels are in intensity
         sum_abs_values = np.sum(np.abs(I_p - I_p_prime))
-        if sum_abs_values < 30:
+        if sum_abs_values < 35:
             return 3 * self.lambda_v
 
         return self.lambda_v
@@ -302,6 +303,7 @@ class AlphaExpansion:
             if has_expansion_reduced_energy:
                 self.assignment_table = A_prime
                 self.q_assignment_table = Q_prime
+            self.iteration += 1
 
         f = self.get_f_from_assignment_table()
         return f
