@@ -76,13 +76,17 @@ def test_3_b():
     right = cv2.imread("input_images/tsukuba/scene1.row3.col1.ppm")
     print(left.shape)
 
-    # left = cv2.resize(left, (225, 190))
-    # right = cv2.resize(right, (225, 190))
-    labels = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,17,18,19,20])
-    lambda_v = 2
-    d_thresh = 80
+    left = cv2.resize(left, (192, 144))
+    right = cv2.resize(right, (192, 144))
+    print(left.shape)
+    # labels = np.array([10, 12, 14, 16, 20, 22, 28])
+    labels = np.array([5, 6, 7, 8, 9, 10, 11, 12, 13, 14])
+    lambda_v = 2.5
+    K = 6
+    d_thresh = 150
+    full_n = False
 
-    disparity_map = stereo.pairwise_stereo_graph_cut(left, right, labels, lambda_v, d_thresh)
+    disparity_map = stereo.pairwise_stereo_graph_cut(left, right, labels, lambda_v, d_thresh, K, full_n)
     cv2.imwrite("output/disparity_ssd_map_3_b.png", disparity_map)
 
 

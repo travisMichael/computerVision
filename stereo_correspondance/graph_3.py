@@ -2,11 +2,11 @@ import numpy as np
 import maxflow
 import cv2
 
-K = 4
+# K = 3
 
 class AlphaExpansion:
 
-    def __init__(self, left, right, labels, lambda_v, d_thresh):
+    def __init__(self, left, right, labels, lambda_v, d_thresh, K, full_n):
         self.L = left.astype(np.float)
         self.R = right.astype(np.float)
         self.labels = labels
@@ -22,7 +22,9 @@ class AlphaExpansion:
         self.assignment_edges = {}
         self.neighbors = np.array([[1,0], [-1,0], [0,1], [0,-1]])
         self.iteration = 1
-        # self.neighbors = np.array([[1,0], [-1,0], [0,1], [0,-1], [1,1], [-1,1], [1, -1], [-1,-1]])
+        self.K = K
+        if full_n:
+            self.neighbors = np.array([[1,0], [-1,0], [0,1], [0,-1], [1,1], [-1,1], [1, -1], [-1,-1]])
 
     # returns the assigned pixel to p
     def get_q(self, p, alpha):
@@ -131,14 +133,14 @@ class AlphaExpansion:
                 d_smooth = self.D_smooth(p, self.assignment_table, self.q_assignment_table, alpha)
                 d_a_0 = self.D_a(p, label) + d_smooth
                 G.add_tedge(a_0, d_a_0_occ, d_a_0)
-                G.add_edge(a_0, a_alpha, 10000000, 2 * K * self.lambda_v)
+                G.add_edge(a_0, a_alpha, 10000000, 2 * self.K * self.lambda_v)
                 # print(p, d_a_alpha, d_a_alpha_occ, d_a_0_occ, d_a_0)
 
         return G
 
     def D_a(self, p, d):
         # find the best match within the label range, clipped at thresh
-        THRESHOLD = 100 # self.d_thresh
+        THRESHOLD = self.d_thresh
         p_index = np.unravel_index(p, (self.h, self.w))
         q_index = (p_index[0], p_index[1] + d)
 
@@ -161,7 +163,7 @@ class AlphaExpansion:
         # return self.lambda_v
         # if A_0[p] == 0:
         #     return 0.0
-        return K * self.lambda_v
+        return self.K * self.lambda_v
 
     def D_occ_a(self, p, q, A_0):
         return self.D_occ_p(p, A_0) + self.D_occ_p(q, A_0)
@@ -177,7 +179,7 @@ class AlphaExpansion:
         I_p_prime = self.L[p_prime_index[0], p_prime_index[1]]
         # calculate how close the pixels are in intensity
         sum_abs_values = np.sum(np.abs(I_p - I_p_prime))
-        if sum_abs_values < 35:
+        if sum_abs_values < 15:
             return 3 * self.lambda_v
 
         return self.lambda_v

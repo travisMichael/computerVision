@@ -33,8 +33,8 @@ def pairwise_stereo_ssd(left, right, t_size):
     return raw_disparity_map
 
 
-def pairwise_stereo_graph_cut(left, right, labels, lambda_v, d_thresh):
-    stereo_algorithm = g3.AlphaExpansion(left, right, labels, lambda_v=lambda_v, d_thresh=d_thresh)
+def pairwise_stereo_graph_cut(left, right, labels, lambda_v, d_thresh, K, full_n):
+    stereo_algorithm = g3.AlphaExpansion(left, right, labels, lambda_v=lambda_v, d_thresh=d_thresh, K=K, full_n=full_n)
 
     f = stereo_algorithm.calculate_disparity_map()
 
