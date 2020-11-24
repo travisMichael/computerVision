@@ -71,6 +71,22 @@ def test_2_b():
     cv2.imwrite("output/disparity_ssd_map_2_b.png", disparity_map)
 
 
+def test_3_a():
+    left = cv2.imread("input_images/tsukuba/scene1.row3.col3.ppm")
+    right = cv2.imread("input_images/tsukuba/scene1.row3.col1.ppm")
+
+    disparity_map = stereo.pairwise_stereo_ssd(left, right, 7)
+
+    d = np.zeros_like(disparity_map)
+
+    disparity_map[disparity_map > 50] = 0
+    d[disparity_map > 30] = 255
+    disparity_map *= 9
+
+    cv2.imwrite("output/disparity_ssd_map_3_a.png", disparity_map)
+    cv2.imwrite("output/d.png", d)
+
+
 def test_3_b():
     left = cv2.imread("input_images/tsukuba/scene1.row3.col3.ppm")
     right = cv2.imread("input_images/tsukuba/scene1.row3.col1.ppm")
@@ -101,4 +117,5 @@ if __name__ == '__main__':
     # test_1_b()
     # test_2_a()
     # test_2_b()
-    test_3_b()
+    test_3_a()
+    # test_3_b()

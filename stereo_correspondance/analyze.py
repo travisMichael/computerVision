@@ -46,6 +46,20 @@ def analyze_2_b():
     print(ratio_1)
 
 
+def analyze_3_a():
+    ground_truth = cv2.imread("input_images/tsukuba/true_disp.png", 0).astype(np.float) / 4.0
+    # ssd_result = cv2.imread("output/disparity/d_27.png", 0).astype(np.float) / 9.0
+    ssd_result = cv2.imread("output/disparity_ssd_map_3_a.png", 0).astype(np.float)
+    # ground_truth = cv2.resize(ground_truth, (225, 190))
+
+    # ground_truth = ground_truth[:, 0:200]
+    # ssd_result = ssd_result[:, 0:200]
+
+    ratio_1 = compare_with_ground_truth(ground_truth, ssd_result, 1.0/2.0, "match_3_a")
+    print(ratio_1)
+
+
 if __name__ == '__main__':
     # analyze_2_a()
-    analyze_2_b()
+    # analyze_2_b()
+    analyze_3_a()

@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 # import graph_2 as graph
-import graph_3 as g3
+# import graph_3 as g3
 
 
 def pairwise_stereo_ssd(left, right, t_size):
@@ -26,17 +26,17 @@ def pairwise_stereo_ssd(left, right, t_size):
             error_map = np.squeeze(error_map)
             error_map[0:j+1] = error_map.max()
             min_arg = np.argmin(error_map)
-            if min_arg - j <= 0:
-                print("Not good")
+            # if min_arg - j <= 0:
+            #     print("Not good")
             raw_disparity_map[i, j - t_size] = min_arg - j + t_size
 
     return raw_disparity_map
 
 
 def pairwise_stereo_graph_cut(left, right, labels, lambda_v, d_thresh):
-    stereo_algorithm = g3.AlphaExpansion(left, right, labels, lambda_v=lambda_v, d_thresh=d_thresh)
-
-    f = stereo_algorithm.calculate_disparity_map()
-
+    # stereo_algorithm = g3.AlphaExpansion(left, right, labels, lambda_v=lambda_v, d_thresh=d_thresh)
+    #
+    # f = stereo_algorithm.calculate_disparity_map()
+    f = 1
     return f
 
