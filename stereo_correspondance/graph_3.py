@@ -6,7 +6,7 @@ import cv2
 
 class AlphaExpansion:
 
-    def __init__(self, left, right, labels, lambda_v, d_thresh, K, full_n):
+    def __init__(self, left, right, labels, lambda_v, d_thresh, K, full_n, reverse):
         self.L = left.astype(np.float)
         self.R = right.astype(np.float)
         self.labels = labels
@@ -23,13 +23,14 @@ class AlphaExpansion:
         self.neighbors = np.array([[1,0], [-1,0], [0,1], [0,-1]])
         self.iteration = 1
         self.K = K
+        self.reverse = reverse
         if full_n:
             self.neighbors = np.array([[1,0], [-1,0], [0,1], [0,-1], [1,1], [-1,1], [1, -1], [-1,-1]])
 
     # returns the assigned pixel to p
     def get_q(self, p, alpha):
         p_index = np.unravel_index(p, (self.h, self.w))
-        if p_index[1] + alpha > self.w - 1:
+        if p_index[1] + alpha > self.w - 1 or p_index[1] + alpha < 0:
             return p
 
         q = p_index[0] * self.w + p_index[1] + alpha
@@ -42,11 +43,15 @@ class AlphaExpansion:
     def save_disparity_map(self):
         f = self.get_f_from_assignment_table()
         f = f * 9
+        if self.reverse:
+            f *= -1
 
         cv2.imwrite("output/disparity/d_" + str(self.iteration) + ".png", f)
 
     def initialize_assignment_function(self):
-        a_table = np.random.randint(low=self.d_low, high=self.d_high, size=self.n)
+        high = np.max(self.labels)
+        low = np.min(self.labels)
+        a_table = np.random.randint(low=low, high=high, size=self.n)
         q_table = np.zeros_like(a_table)
         for p in range(self.n):
             p_index = np.unravel_index(p, (self.h, self.w))
@@ -86,7 +91,7 @@ class AlphaExpansion:
             # set q_table
             p_index = np.unravel_index(p, (self.h, self.w))
             q_index = (p_index[0], p_index[1] + new_label)
-            if q_index[1] > self.w - 1:
+            if q_index[1] > self.w - 1 or q_index[1] < 0:
                 continue
             q = self.get_index(q_index[0], q_index[1])
             Q_prime[q] = new_label
@@ -144,7 +149,7 @@ class AlphaExpansion:
         p_index = np.unravel_index(p, (self.h, self.w))
         q_index = (p_index[0], p_index[1] + d)
 
-        if q_index[1] > self.w - 1:
+        if q_index[1] > self.w - 1 or q_index[1] < 0:
             return THRESHOLD
 
         # print(q_index)

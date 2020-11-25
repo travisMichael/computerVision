@@ -26,15 +26,16 @@ def pairwise_stereo_ssd(left, right, t_size):
             error_map = np.squeeze(error_map)
             error_map[0:j+1] = error_map.max()
             min_arg = np.argmin(error_map)
-            if min_arg - j <= 0:
-                print("Not good")
+            # if min_arg - j <= 0:
+            #     print("Not good")
             raw_disparity_map[i, j - t_size] = min_arg - j + t_size
 
     return raw_disparity_map
 
 
-def pairwise_stereo_graph_cut(left, right, labels, lambda_v, d_thresh, K, full_n):
-    stereo_algorithm = g3.AlphaExpansion(left, right, labels, lambda_v=lambda_v, d_thresh=d_thresh, K=K, full_n=full_n)
+def pairwise_stereo_graph_cut(left, right, labels, lambda_v, d_thresh, K, full_n, reverse):
+    stereo_algorithm = g3.AlphaExpansion(left, right, labels, lambda_v=lambda_v,
+                                         d_thresh=d_thresh, K=K, full_n=full_n, reverse=reverse)
 
     f = stereo_algorithm.calculate_disparity_map()
 
