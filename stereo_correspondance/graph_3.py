@@ -124,7 +124,6 @@ class AlphaExpansion:
         print("Adding A_0 assignments")
         for p in range(self.n):
             a_0 = A_0[p]
-            label = self.assignment_table[p]
             G = self.add_neighborhood_edges(p, G, A_alpha, alpha)
             a_alpha = A_alpha[p]
             q_alpha = self.get_q(p, alpha)
@@ -133,12 +132,14 @@ class AlphaExpansion:
             G.add_tedge(a_alpha, d_a_alpha, d_a_alpha_occ)
 
             if a_0 != 0 or p != 0:
+                label = self.assignment_table[p]
+                # G = self.add_neighborhood_edges(p, G, A_0, label)
                 q_0 = self.get_q(p, label)
                 d_a_0_occ = self.D_occ_a(p, q_0, A_0)
                 d_smooth = self.D_smooth(p, self.assignment_table, self.q_assignment_table, alpha)
                 d_a_0 = self.D_a(p, label) + d_smooth
                 G.add_tedge(a_0, d_a_0_occ, d_a_0)
-                G.add_edge(a_0, a_alpha, 10000000, 2 * self.K * self.lambda_v)
+                G.add_edge(a_0, a_alpha, 10000000, 2*self.K * self.lambda_v)
                 # print(p, d_a_alpha, d_a_alpha_occ, d_a_0_occ, d_a_0)
 
         return G
@@ -184,20 +185,14 @@ class AlphaExpansion:
         I_p_prime = self.L[p_prime_index[0], p_prime_index[1]]
         # calculate how close the pixels are in intensity
         sum_abs_values = np.sum(np.abs(I_p - I_p_prime))
-        if sum_abs_values < 15:
+        if sum_abs_values < 8:
             return 3 * self.lambda_v
 
         return self.lambda_v
 
     def add_neighborhood_edges(self, p, G, A_alpha, alpha):
-
-        # q = self.get_q(p, alpha)
         p_index = np.unravel_index(p, (self.h, self.w))
-        # q_index = np.unravel_index(q, (self.h, self.w))
-        # a_1 = A_alpha[p]
-        # G, p_index, A, alpha
         self.add_n_edges(G, p_index, A_alpha, alpha)
-
         return G
 
     def add_n_edges(self, G, p_index, A, alpha):
@@ -365,7 +360,7 @@ class AlphaExpansion:
     def calculate_occlusion_energy(self, a_table):
         occluded_pixels = float(np.where(a_table == 0)[0].shape[0])
 
-        return occluded_pixels * 10 * self.lambda_v
+        return occluded_pixels * self.K * self.lambda_v
 
     def calculate_data_energy(self, a_table):
         sum = 0.0

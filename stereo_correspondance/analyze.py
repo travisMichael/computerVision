@@ -6,13 +6,12 @@ def compare_with_ground_truth(ground_truth, result, ratio, match):
     h = ground_truth.shape[0]
     w = ground_truth.shape[1]
     ground_truth *= ratio
-
+    thresh = 2
     diff = np.abs(ground_truth - result)
-
-    matching_disparities = np.where(diff <= 1.9)[0].shape[0]
+    matching_disparities = np.where(diff < thresh)[0].shape[0]
 
     p = np.zeros((h,w))
-    p[diff <= 1.9] = 255
+    p[diff < thresh] = 255
     cv2.imwrite("output/" + match + ".png", p)
 
     ratio = float(matching_disparities) / float(h*w)
@@ -37,14 +36,12 @@ def analyze_3_a():
     ground_truth = cv2.imread("input_images/tsukuba/truedisp.row3.col3.pgm", 0).astype(np.float) / 8.0
     result = cv2.imread("output/disparity_ssd_map_3_a.png", 0).astype(np.float) / 9.0
 
-    ground_truth = cv2.resize(ground_truth, (192, 144))
-
     h, w = ground_truth.shape
 
     ground_truth = ground_truth[17:h-17, 17:w-17]
     result = result[17:h-17, 17:w-17]
 
-    ratio_1 = compare_with_ground_truth(ground_truth, result, 1.0/2.0, "match_3_a")
+    ratio_1 = compare_with_ground_truth(ground_truth, result, 1.0, "match_3_a")
     print(ratio_1)
 
 
