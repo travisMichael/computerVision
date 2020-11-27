@@ -1,3 +1,4 @@
+stereo_correspondence/output/**
 stereo_correspondence/.idea/**
 stereo_correspondence/input_images/**
 faceDetection/.idea/**
