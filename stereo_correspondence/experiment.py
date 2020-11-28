@@ -101,8 +101,8 @@ def test_2_c():
 
 if __name__ == '__main__':
     # test_1_a()
-    # test_1_b()
+    test_1_b()
     # test_1_c()
     # test_2_a()
-    test_2_b()
+    # test_2_b()
     # test_2_c()

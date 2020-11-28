@@ -8,72 +8,74 @@ NO_OP = 1000000000
 def calculate_energy(dsi, max_d):
     energy = np.ones_like(dsi) * NO_OP
     w = dsi.shape[0]
-    energy[0, :] = dsi[0, :]
-    energy[:, 0] = dsi[:, 0]
-    energy[0, w-1] = NO_OP
+    energy[w-1, :] = np.copy(dsi[w-1, :])
+    energy[:, w-1] = np.copy(dsi[:, w-1])
 
-    for i in range(1, w):
-        for j in range(i, i + max_d):
-            if max_d >= w or j >= w:
+    for i in range(w-2, -1, -1):
+        for j in range(i, i-max_d, -1):
+            if j < 0:
                 continue
-            left = 100000000
-            top = 100000000
-            top_left = 100000000
-            if energy[i, j-1] != NO_OP:
-                left = energy[i, j-1]
-            if energy[i-1, j] != NO_OP:
-                top = energy[i-1, j]
-            if energy[i-1, j-1] != NO_OP:
-                top_left = energy[i-1, j-1]
-            value = np.min([left, top, top_left])
+            right = 100000000
+            bottom = 100000000
+            bottom_right = 100000000
+            if energy[i, j+1] != NO_OP:
+                right = energy[i, j+1]
+            if energy[i+1, j] != NO_OP:
+                bottom = energy[i+1, j]
+            if energy[i+1, j+1] != NO_OP:
+                bottom_right = energy[i+1, j+1]
+            value = np.min([right, bottom, bottom_right])
             energy[i, j] = value + dsi[i, j]
 
+    energy[w-1, 0:w-max_d] = NO_OP
     return energy
 
 
 def extract_path(energy):
     w = energy.shape[0]
-    j = w - 1
     line_disparity = np.zeros(w)
+    j = 0
     i = np.argmin(energy[:, j])
-    line_disparity[j] = j - i
+    line_disparity[j] = i - j
 
     is_done = False
     while not is_done:
-        left = 100000000
-        top = 100000000
-        top_left = 100000000
-        if energy[i, j-1] != NO_OP:
-            left = energy[i, j-1]
-        if energy[i-1, j] != NO_OP:
-            top = energy[i-1, j]
-        if energy[i-1, j-1] != NO_OP:
-            top_left = energy[i-1, j-1]
-        arg_min = np.argmin([left, top, top_left])
+        right = 100000000
+        bottom = 100000000
+        bottom_right = 100000000
+        # print(j, i)
+        if energy[i, j+1] != NO_OP:
+            right = energy[i, j+1]
+        if energy[i+1, j] != NO_OP:
+            bottom = energy[i+1, j]
+        if energy[i+1, j+1] != NO_OP:
+            bottom_right = energy[i+1, j+1]
+        arg_min = np.argmin([right, bottom, bottom_right])
         if arg_min == 2 and j >= 0:
             line_disparity[j] = j - i
-            j = j - 1
-            i = i - 1
+            j = j + 1
+            i = i + 1
             pass
         elif arg_min == 1 and j >= 0:
-            i = i - 1
+            i = i + 1
             pass
         else:
             line_disparity[j] = j - i
-            j = j - 1
+            j = j + 1
             pass
 
-        if i <= 0:
+        if i >= w-1:
             break
 
-    return line_disparity
+    return line_disparity*-1
 
 
 def calculate_dsi(left_scan_line, right_scan_line, w):
     dsi = np.zeros((w, w))
-    left_scan_line = np.expand_dims(left_scan_line, axis=1)
-    dsi += left_scan_line
-    dsi = np.abs(dsi - right_scan_line)
+
+    right_scan_line = np.expand_dims(right_scan_line, axis=1)
+    dsi += right_scan_line
+    dsi = np.abs(dsi - left_scan_line)
     return dsi
 
 
