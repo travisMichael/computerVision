@@ -20,8 +20,8 @@ def compare_with_ground_truth(ground_truth, result, ratio, match):
 
 
 def analyze_1_a():
-    ground_truth = cv2.imread("input_images/cones/disp2.png", 0).astype(np.float) / 4.0
-    ssd_result = cv2.imread("cones_disparity_1_a_right.png", 0).astype(np.float) / 9.0
+    ground_truth = cv2.imread("input_images/cones/disp6.png", 0).astype(np.float) / 4.0
+    ssd_result = cv2.imread("cones_disparity_1_a.png", 0).astype(np.float) / 9.0
 
     ground_truth = cv2.resize(ground_truth, (225, 190))
 

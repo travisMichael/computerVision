@@ -7,7 +7,7 @@ pymaxflow
 
 
 External Data:
-Drop the following datasets into a directory "input_images"
+Drop the following datasets into the directory "input_images"
 
 https://vision.middlebury.edu/stereo/data/scenes2003/newdata/cones/cones-png-2.zip
 https://vision.middlebury.edu/stereo/data/scenes2001/data/tsukuba/tsukuba.zip

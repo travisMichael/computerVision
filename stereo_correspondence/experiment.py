@@ -1,6 +1,7 @@
 import cv2
 import stereo
 import numpy as np
+import analyze
 
 
 def test_1_a():
@@ -18,6 +19,7 @@ def test_1_a():
     disparity_map *= 9
 
     cv2.imwrite("cones_disparity_1_a.png", disparity_map)
+    analyze.analyze_1_a()
 
 
 def test_1_b():
@@ -35,6 +37,7 @@ def test_1_b():
     disparity_map *= 9
 
     cv2.imwrite("cones_disparity_1_b.png", disparity_map)
+    analyze.analyze_1_b()
 
 
 def test_1_c():
@@ -54,6 +57,7 @@ def test_1_c():
 
     disparity_map = stereo.pairwise_stereo_graph_cut(left, right, labels, lambda_v, d_thresh, K, full_n, reverse)
     cv2.imwrite("cones_disparity_1_c.png", disparity_map)
+    analyze.analyze_1_c()
 
 
 def test_2_a():
@@ -66,6 +70,7 @@ def test_2_a():
     disparity_map *= 9
 
     cv2.imwrite("tsukuba_disparity_2_a.png", disparity_map)
+    analyze.analyze_2_a()
 
 
 def test_2_b():
@@ -79,6 +84,7 @@ def test_2_b():
     disparity_map *= 9
 
     cv2.imwrite("tsukuba_disparity_2_b.png", disparity_map)
+    analyze.analyze_2_b()
 
 
 def test_2_c():
@@ -97,12 +103,13 @@ def test_2_c():
 
     disparity_map = stereo.pairwise_stereo_graph_cut(left, right, labels, lambda_v, d_thresh, K, full_n, reverse)
     cv2.imwrite("tsukuba_disparity_2_c.png", disparity_map)
+    analyze.analyze_2_c()
 
 
 if __name__ == '__main__':
     # test_1_a()
-    test_1_b()
+    # test_1_b()
     # test_1_c()
     # test_2_a()
-    # test_2_b()
+    test_2_b()
     # test_2_c()
