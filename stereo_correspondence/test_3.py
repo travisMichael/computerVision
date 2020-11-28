@@ -1,12 +1,5 @@
-import numpy as np
+import cv2
 
-m = {}
-
-m[123] = {5}
-
-a_set = {1, 2, 3}
-
-one_in_a_set = 1 in a_set
-
-print(one_in_a_set)
+im = cv2.imread("cones_disparity_1_c.png")
+cv2.imwrite("cones_disparity_1_c_bright.png", im * 9)
 

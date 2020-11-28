@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-# import graph_2 as graph
 import graph_3 as g3
 NO_OP = 1000000000
 

@@ -47,9 +47,8 @@ def test_1_c():
     left = cv2.resize(left, (225, 190))
     right = cv2.resize(right, (225, 190))
     labels = np.array([9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25, 26])
-    lambda_v = 4
-    K = 2.5
-    K = 4
+    lambda_v = 3
+    K = 7
     d_thresh = 150
     full_n = False
     reverse = False
@@ -88,18 +87,18 @@ def test_2_b():
 
 
 def test_2_c():
-    right = cv2.imread("input_images/tsukuba/scene1.row3.col3.ppm")
-    left = cv2.imread("input_images/tsukuba/scene1.row3.col1.ppm")
+    left = cv2.imread("input_images/tsukuba/scene1.row3.col3.ppm")
+    right = cv2.imread("input_images/tsukuba/scene1.row3.col1.ppm")
 
     left = cv2.resize(left, (192, 144))
     right = cv2.resize(right, (192, 144))
     labels = np.array([5, 6, 7, 8, 9, 10, 11, 12, 13, 14])
-    lambda_v = 1
-    K = 2.5
-    d_thresh = 150
+    lambda_v = 3
+    K = 5
+    d_thresh = 100
     full_n = False
-    reverse = True
-    labels *= -1
+    reverse = False
+    # labels *= -1
 
     disparity_map = stereo.pairwise_stereo_graph_cut(left, right, labels, lambda_v, d_thresh, K, full_n, reverse)
     cv2.imwrite("tsukuba_disparity_2_c.png", disparity_map)
@@ -107,9 +106,9 @@ def test_2_c():
 
 
 if __name__ == '__main__':
-    # test_1_a()
-    # test_1_b()
-    # test_1_c()
-    # test_2_a()
+    test_1_a()
+    test_1_b()
+    test_1_c()
+    test_2_a()
     test_2_b()
-    # test_2_c()
+    test_2_c()

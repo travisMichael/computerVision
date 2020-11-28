@@ -46,7 +46,7 @@ class AlphaExpansion:
         if self.reverse:
             f *= -1
 
-        cv2.imwrite("output/disparity/d_" + str(self.iteration) + ".png", f)
+        # cv2.imwrite("output/disparity/d_" + str(self.iteration) + ".png", f)
 
     def initialize_assignment_function(self):
         high = np.max(self.labels)
