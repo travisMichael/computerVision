@@ -96,7 +96,7 @@ def pairwise_stereo_dp(left, right, max_d):
     return f
 
 
-def pairwise_stereo_ssd(left, right, t_size):
+def pairwise_stereo_ssd(left, right, t_size, max_d):
     h = left.shape[0]
     w = left.shape[1]
     right_expanded = cv2.copyMakeBorder(np.copy(right), t_size, t_size, t_size, t_size, cv2.BORDER_REFLECT)
@@ -107,11 +107,21 @@ def pairwise_stereo_ssd(left, right, t_size):
         for j in range(t_size, w + t_size):
             left_window = left_expanded[i:i+t_size, j-t_size:j+t_size]
             right_strip = right_expanded[i:i+t_size, :]
-            error_map = cv2.matchTemplate(right_strip, left_window, method=cv2.TM_SQDIFF)
-            error_map = np.squeeze(error_map)
-            error_map[0:j+1] = error_map.max()
-            min_arg = np.argmin(error_map)
-            raw_disparity_map[i, j - t_size] = min_arg - j + t_size
+            min_ssd = 1000000000
+            min_arg = j
+            for k in range(j, j + max_d):
+                l = k - t_size
+                r = k + t_size
+
+                if l < 0 or r > w + 2*t_size:
+                    continue
+                right_window = right_strip[:, l:r]
+                ssd = np.sum(np.abs(left_window - right_window) ** 2)
+                if ssd < min_ssd:
+                    min_ssd = ssd
+                    min_arg = k
+
+            raw_disparity_map[i, j - t_size] = min_arg - j
 
     # for i in range(h):
     #     for j in range(t_size, w + t_size):

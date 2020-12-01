@@ -59,8 +59,8 @@ def analyze_1_c():
 
 def analyze_2_a():
     ground_truth = cv2.imread("input_images/tsukuba/truedisp.row3.col3.pgm", 0).astype(np.float) / 8.0
-    result = cv2.imread("Tsukuba_disparity_2_a.png", 0).astype(np.float) / 9.0
-
+    result = cv2.imread("Tsukuba_disparity_2_a.png", 0).astype(np.float) / 4.0
+    # ground_truth = cv2.resize(ground_truth, (192, 144))
     h, w = ground_truth.shape
 
     ground_truth = ground_truth[17:h-17, 17:w-17]
@@ -99,9 +99,9 @@ def analyze_2_c():
 
 
 if __name__ == '__main__':
-    analyze_1_a()
-    analyze_1_b()
-    analyze_1_c()
+    # analyze_1_a()
+    # analyze_1_b()
+    # analyze_1_c()
     analyze_2_a()
     analyze_2_b()
     analyze_2_c()
