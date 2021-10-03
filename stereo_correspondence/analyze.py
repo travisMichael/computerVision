@@ -99,9 +99,9 @@ def analyze_2_c():
 
 
 if __name__ == '__main__':
-    # analyze_1_a()
-    # analyze_1_b()
-    # analyze_1_c()
+    analyze_1_a()
+    analyze_1_b()
+    analyze_1_c()
     analyze_2_a()
     analyze_2_b()
     analyze_2_c()
