@@ -4,7 +4,7 @@ from feature.gradiant import f_gradiant_convolution, f_magnitude, f_orientation
 
 
 def main():
-    image = cv2.imread('../data/experiment/lines.jpg', cv2.IMREAD_GRAYSCALE)
+    image = cv2.imread('../../data/experiment/input/lines.jpg', cv2.IMREAD_GRAYSCALE)
 
     image = cv2.resize(image, (600, 800))
 
@@ -12,7 +12,8 @@ def main():
 
     dx, dy = f_gradiant_convolution(image_f)
     magnitude = f_magnitude(dx, dy)
-    orientation = f_orientation(dx, dy)
+    # todo fix orientation
+    # orientation = f_orientation(dx, dy)
 
     mx = 268
     my = 354
