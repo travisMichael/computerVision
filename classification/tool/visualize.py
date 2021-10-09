@@ -1,4 +1,8 @@
 import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import colors
+from tool import image_util as util
 
 
 def mouse_click_handler(img):
@@ -19,12 +23,7 @@ def mouse_click_handler(img):
 
 
 def show_with_handler(file, handler=mouse_click_handler):
-    img = cv2.imread(file)
-    h, w = img.shape[:2]
-    ratio = w/float(h)
-    new_h = 800
-    new_w = int(new_h*ratio)
-    img = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+    img = util.load(file)
 
     cv2.imshow("image", img)
     cv2.setMouseCallback('image', handler(img))
@@ -32,3 +31,20 @@ def show_with_handler(file, handler=mouse_click_handler):
     cv2.waitKey(0)
 
     cv2.destroyAllWindows()
+
+
+def plot_3d(image):
+    r, g, b = cv2.split(image)
+    fig = plt.figure()
+    axis = fig.add_subplot(1, 1, 1, projection="3d")
+    pixel_colors = image.reshape((np.shape(image)[0]*np.shape(image)[1], 3))
+    norm = colors.Normalize(vmin=-1.,vmax=1.)
+    norm.autoscale(pixel_colors)
+    pixel_colors = norm(pixel_colors).tolist()
+    #
+    axis.scatter(r.flatten(), g.flatten(), b.flatten(),  facecolors=pixel_colors, marker=".")
+    axis.set_xlabel("Red")
+    axis.set_ylabel("Green")
+    axis.set_zlabel("Blue")
+    plt.show()
+    cv2.waitKey(0)
